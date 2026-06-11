@@ -4,12 +4,14 @@ from pathlib import Path
 
 import typer
 
+from wallnext.console import console, err_console
+from wallnext.exceptions import WallnextError
 from wallnext.sources.base import WallpaperSource
 from wallnext.sources.wallhaven import WallhavenSource
 from wallnext.wallhaven.wallhaven_requester import WallhavenRequester
 from wallnext.wallpaper import set_wallpaper
 
-app = typer.Typer()
+app = typer.Typer(pretty_exceptions_enable=False)
 
 source: WallpaperSource = WallhavenSource()
 wlhv_requester = WallhavenRequester()
@@ -29,33 +31,48 @@ def _fetch_and_set(source: WallpaperSource) -> None:
 
 @app.command(help="Fetch the most popular wallpapers of the last month.")
 def get_top_wallpapers():
-    result = wlhv_requester.toplist()
-    print(result.model_dump_json(indent=2))
+    try:
+        result = wlhv_requester.toplist()
+        console.print_json(result.model_dump_json(indent=2))
+    except WallnextError as e:
+        err_console.print(f"[bold red]Error:[/bold red] {e}")
+        raise typer.Exit(1)
 
 
 @app.command(help="Download a random wallpaper from the top list.")
-def download_random() -> Path:
-    url = source.random_url()
-    dest = wlhv_requester.download(url, Path.cwd() / "wallpapers")
-    typer.echo(f"Saved: {dest}")
-    return dest
+def download_random() -> None:
+    try:
+        url = source.random_url()
+        dest = wlhv_requester.download(url, Path.cwd() / "wallpapers")
+        console.print(f"[green]✓[/green] Saved: [cyan]{dest}[/cyan]")
+    except WallnextError as e:
+        err_console.print(f"[bold red]Error:[/bold red] {e}")
+        raise typer.Exit(1)
 
 
 @app.command(help="Set a random wallpaper as desktop background.")
 def set_random():
-    _fetch_and_set(source)
-    typer.echo("Wallpaper set.")
+    try:
+        _fetch_and_set(source)
+        console.print("[green]✓[/green] Wallpaper set.")
+    except WallnextError as e:
+        err_console.print(f"[bold red]Error:[/bold red] {e}")
+        raise typer.Exit(1)
 
 
 @app.command(help="Change the wallpaper every N seconds until stopped.")
 def slideshow(interval: int = typer.Argument(default=10)):
-    typer.echo("Starting slideshow. Press Ctrl+C to stop.")
+    console.print(f"[cyan]Starting slideshow[/cyan] (interval: {interval}s). Press Ctrl+C to stop.")
     try:
         while True:
-            _fetch_and_set(source)
+            try:
+                _fetch_and_set(source)
+                console.print("[green]✓[/green] Wallpaper updated.")
+            except WallnextError as e:
+                err_console.print(f"[yellow]Warning:[/yellow] {e} — retrying next cycle.")
             time.sleep(interval)
     except KeyboardInterrupt:
-        typer.echo("Slideshow stopped.")
+        console.print("\n[cyan]Slideshow stopped.[/cyan]")
 
 
 def main():

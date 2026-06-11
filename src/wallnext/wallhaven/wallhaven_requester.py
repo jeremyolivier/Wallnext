@@ -4,6 +4,7 @@ from pathlib import Path
 import httpx
 from dotenv import load_dotenv
 
+from wallnext.exceptions import WallhavenAPIError, WallhavenNetworkError
 from wallnext.wallhaven.models import SearchResult
 
 load_dotenv()
@@ -17,6 +18,18 @@ class WallhavenRequester:
             params={"apikey": self.api_key} if self.api_key else {},
             timeout=10,
         )
+
+    def _get(self, *args, **kwargs) -> httpx.Response:
+        try:
+            resp = self.client.get(*args, **kwargs)
+            resp.raise_for_status()
+            return resp
+        except httpx.HTTPStatusError as e:
+            raise WallhavenAPIError(e.response.status_code, e.response.text) from e
+        except httpx.TimeoutException as e:
+            raise WallhavenNetworkError("Request timed out.") from e
+        except httpx.RequestError as e:
+            raise WallhavenNetworkError(f"Network error: {e}") from e
 
     def search(
         self,
@@ -52,9 +65,7 @@ class WallhavenRequester:
             if v is not None
         }
 
-        resp = self.client.get("/search", params=params)
-        resp.raise_for_status()
-        return SearchResult.model_validate(resp.json())
+        return SearchResult.model_validate(self._get("/search", params=params).json())
 
     def random(self) -> SearchResult:
         return self.search(sorting="random")
@@ -65,11 +76,18 @@ class WallhavenRequester:
     def download(self, url: str, dest_dir: Path, filename: str | None = None) -> Path:
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest = dest_dir / (filename or url.split("/")[-1])
-        with self.client.stream("GET", url) as resp:
-            resp.raise_for_status()
-            with open(dest, "wb") as f:
-                for chunk in resp.iter_bytes():
-                    f.write(chunk)
+        try:
+            with self.client.stream("GET", url) as resp:
+                resp.raise_for_status()
+                with open(dest, "wb") as f:
+                    for chunk in resp.iter_bytes():
+                        f.write(chunk)
+        except httpx.HTTPStatusError as e:
+            raise WallhavenAPIError(e.response.status_code, e.response.text) from e
+        except httpx.TimeoutException as e:
+            raise WallhavenNetworkError("Download timed out.") from e
+        except httpx.RequestError as e:
+            raise WallhavenNetworkError(f"Network error: {e}") from e
         return dest
 
     def close(self):
