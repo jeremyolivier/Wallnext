@@ -1,0 +1,23 @@
+[build-system]
+requires = ["uv_build>=0.7,<0.8"]
+build-backend = "uv_build"
+
+[project]
+name = "wallnext"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = ["httpx>=0.28.1",
+    "pydantic>=2.13.4",
+    "python-dotenv>=1.2.2",
+    "typer>=0.26.7",
+]
+
+[dependency-groups]
+dev = ["ruff>=0.15.17",
+    "ty>=0.0.48",
+]
+
+[project.scripts]
+wallnext = "wallnext.main:main"
+
+
