@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Official CPython (MSC-built) — avoids the Nuitka segfault seen with uv's
+      # python-build-standalone. MSVC is preinstalled on windows-latest, so
+      # Nuitka compiles natively without downloading a toolchain.
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install project and Nuitka
+        run: python -m pip install -e .
+
+      - name: Build standalone exe
+        run: >
+          python -m nuitka --mode=standalone
+          --assume-yes-for-downloads
+          --windows-console-mode=attach
+          --output-dir=build --output-filename=wallnext
+          src/wallnext/main.py
+
+      - name: Package
+        id: package
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          $zip = "wallnext-$version-win64.zip"
+          Compress-Archive -Path build/main.dist -DestinationPath $zip -Force
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+          "sha256=$hash" >> $env:GITHUB_OUTPUT
+          Write-Host "SHA256: $hash"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.package.outputs.zip }}
+          generate_release_notes: true
+          body: |
+            ## Install with Scoop
+
+            ```powershell
+            scoop install https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/scoop/wallnext.json
+            ```
+
+            Manifest `url` / `hash` for this release:
+
+            - `url`: `https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.package.outputs.zip }}`
+            - `hash`: `${{ steps.package.outputs.sha256 }}`
