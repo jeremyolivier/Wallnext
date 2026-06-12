@@ -10,7 +10,6 @@ dependencies = [
     "httpx>=0.28.1",
     "nuitka>=4.1.2",
     "pydantic>=2.13.4",
-    "python-dotenv>=1.2.2",
     "rich>=15.0.0",
     "typer>=0.26.7",
 ]

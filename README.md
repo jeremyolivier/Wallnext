@@ -8,13 +8,9 @@ CLI to automatically set wallpapers from various sources.
 ## Setup
 
 ```bash
-cp .env.example .env
-# Fill in your API key in .env
 uv sync
 uv run wallnext --help
 ```
-
-Get your Wallhaven API key at [wallhaven.cc/settings/account](https://wallhaven.cc/settings/account).
 
 ## Commands
 

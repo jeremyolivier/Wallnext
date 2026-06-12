@@ -77,3 +77,7 @@ def slideshow(interval: int = typer.Argument(default=10)):
 
 def main():
     app()
+
+
+if __name__ == "__main__":
+    main()

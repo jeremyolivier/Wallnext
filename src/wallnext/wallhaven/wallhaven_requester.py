@@ -1,21 +1,15 @@
-import os
 from pathlib import Path
 
 import httpx
-from dotenv import load_dotenv
 
 from wallnext.exceptions import WallhavenAPIError, WallhavenNetworkError
 from wallnext.wallhaven.models import SearchResult
 
-load_dotenv()
-
 
 class WallhavenRequester:
     def __init__(self):
-        self.api_key = os.getenv("WALLHAVEN_API_KEY")
         self.client = httpx.Client(
             base_url="https://wallhaven.cc/api/v1",
-            params={"apikey": self.api_key} if self.api_key else {},
             timeout=10,
         )
 

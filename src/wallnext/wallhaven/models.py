@@ -31,7 +31,7 @@ class Wallpaper(BaseModel):
 class Meta(BaseModel):
     current_page: int
     last_page: int
-    per_page: str
+    per_page: int
     total: int
     query: str
     seed: str | None = None
