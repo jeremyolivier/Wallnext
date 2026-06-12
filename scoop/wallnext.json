@@ -1,0 +1,28 @@
+{
+  "version": "0.1.0",
+  "description": "Automatically set desktop wallpapers from various sources, with a background agent.",
+  "homepage": "https://github.com/jeremyolivier/wallnext",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/jeremyolivier/wallnext/releases/download/v0.1.0/wallnext-0.1.0-win64.zip",
+      "hash": "REPLACE_WITH_SHA256"
+    }
+  },
+  "extract_dir": "main.dist",
+  "bin": "wallnext.exe",
+  "notes": [
+    "Configure the agent:   wallnext config",
+    "Install autostart:     wallnext service install",
+    "Start it now:          wallnext service start",
+    "Config & logs live in %APPDATA%\\wallnext\\."
+  ],
+  "checkver": "github",
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/jeremyolivier/wallnext/releases/download/v$version/wallnext-$version-win64.zip"
+      }
+    }
+  }
+}
