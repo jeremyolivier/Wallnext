@@ -7,7 +7,7 @@ from rich.console import Console
 # standard streams so output never crashes on these characters.
 for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
-        _stream.reconfigure(encoding="utf-8", errors="replace")
+        _stream.reconfigure(encoding="utf-8", errors="replace")  # ty: ignore[call-non-callable]
 
 console = Console()
 err_console = Console(stderr=True)
