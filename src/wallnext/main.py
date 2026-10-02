@@ -1,6 +1,6 @@
-import tempfile
 import time
 from pathlib import Path
+from typing import Annotated
 
 import typer
 from rich.prompt import IntPrompt, Prompt
@@ -8,6 +8,7 @@ from rich.prompt import IntPrompt, Prompt
 from wallnext import config as cfg
 from wallnext.console import console, err_console
 from wallnext.exceptions import WallnextError
+from wallnext.service.agent import _prune
 from wallnext.sources.base import WallpaperSource
 from wallnext.sources.wallhaven.client import WallhavenRequester
 from wallnext.sources.wallhaven.source import WallhavenSource
@@ -21,17 +22,23 @@ source: WallpaperSource = WallhavenSource(
     requester=wlhv_requester, **_settings.search_params()
 )
 
+DirOption = Annotated[
+    Path,
+    typer.Option("--dir", "-d", help="Directory where wallpapers are saved."),
+]
+KeepOption = Annotated[
+    int,
+    typer.Option("--keep", "-k", help="How many wallpapers to keep on disk."),
+]
 
-def _fetch_and_set(source: WallpaperSource) -> None:
-    url = source.random_url()
-    suffix = Path(url).suffix
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp_path = Path(tmp.name)
-    try:
-        wlhv_requester.download(url, tmp_path.parent, filename=tmp_path.name)
-        set_wallpaper(tmp_path)
-    finally:
-        tmp_path.unlink(missing_ok=True)
+
+def _fetch_and_set(source: WallpaperSource, dest_dir: Path, keep: int) -> None:
+    # Persist the image: Windows reads this path from the registry on every
+    # logon, so deleting it (as a temp file) leaves a black desktop after reboot.
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = wlhv_requester.download(source.random_url(), dest_dir)
+    set_wallpaper(dest)
+    _prune(dest_dir, keep)
 
 
 @app.command(help="Fetch the most popular wallpapers of the last month.")
@@ -56,22 +63,29 @@ def download_random() -> None:
 
 
 @app.command(help="Set a random wallpaper as desktop background.")
-def set_random():
+def set_random(
+    dir: DirOption = _settings.download_dir,
+    keep: KeepOption = _settings.keep,
+):
     try:
-        _fetch_and_set(source)
-        console.print("[green]✓[/green] Wallpaper set.")
+        _fetch_and_set(source, dir, keep)
+        console.print(f"[green]✓[/green] Wallpaper set ([cyan]{dir}[/cyan]).")
     except WallnextError as e:
         err_console.print(f"[bold red]Error:[/bold red] {e}")
         raise typer.Exit(1)
 
 
 @app.command(help="Change the wallpaper every N seconds until stopped.")
-def slideshow(interval: int = typer.Argument(default=10)):
+def slideshow(
+    interval: Annotated[int, typer.Argument()] = 10,
+    dir: DirOption = _settings.download_dir,
+    keep: KeepOption = _settings.keep,
+):
     console.print(f"[cyan]Starting slideshow[/cyan] (interval: {interval}s). Press Ctrl+C to stop.")
     try:
         while True:
             try:
-                _fetch_and_set(source)
+                _fetch_and_set(source, dir, keep)
                 console.print("[green]✓[/green] Wallpaper updated.")
             except WallnextError as e:
                 err_console.print(f"[yellow]Warning:[/yellow] {e} — retrying next cycle.")
