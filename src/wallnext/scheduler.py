@@ -23,6 +23,7 @@ import pywintypes
 import win32api
 import win32com.client
 import win32con
+import win32timezone  # noqa: F401 — lazily imported by pywin32, listed for Nuitka
 
 from wallnext.exceptions import WallnextError
 
