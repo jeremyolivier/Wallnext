@@ -6,6 +6,8 @@ from typing import Any
 import tomli_w
 from pydantic import BaseModel, Field
 
+from wallnext.display import largest_resolution
+
 APP_NAME = "wallnext"
 
 
@@ -32,7 +34,7 @@ class Settings(BaseModel):
     purity: str = "100"
     sorting: str = "toplist"
     toprange: str = "1M"
-    atleast: str = ""
+    atleast: str = Field(default_factory=largest_resolution)
     ratios: str = ""
     download_dir: Path = Field(default_factory=lambda: app_data_dir() / "wallpapers")
     keep: int = Field(default=10, ge=1)
