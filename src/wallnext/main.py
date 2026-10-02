@@ -131,10 +131,10 @@ def config():
     path = cfg.save(settings)
     console.print(f"[green]✓[/green] Config saved to [cyan]{path}[/cyan]")
 
-    # The interval lives in the scheduled task's trigger, so re-register it.
+    # The interval lives in the scheduled task's trigger.
     if interval != current.interval_seconds and scheduler.is_installed():
         try:
-            scheduler.install(interval)
+            scheduler.set_interval(interval)
         except WallnextError as e:
             raise _fail(e)
         console.print("[green]✓[/green] Schedule updated with the new interval.")

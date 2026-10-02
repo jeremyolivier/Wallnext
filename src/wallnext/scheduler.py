@@ -133,6 +133,17 @@ def _date(value: datetime) -> datetime:
     return value.replace(tzinfo=None)
 
 
+def _register(definition: Any) -> None:
+    _root_folder().RegisterTaskDefinition(
+        TASK_NAME,
+        definition,
+        _CREATE_OR_UPDATE,
+        win32api.GetUserNameEx(win32con.NameSamCompatible),
+        None,
+        _Logon.INTERACTIVE_TOKEN,
+    )
+
+
 def is_installed() -> bool:
     try:
         _get_task()
@@ -176,10 +187,20 @@ def install(interval_seconds: int) -> Path:
         action.Path = str(exe)
         action.Arguments = TASK_ARGUMENTS
 
-        service.GetFolder("\\").RegisterTaskDefinition(
-            TASK_NAME, task, _CREATE_OR_UPDATE, user, None, _Logon.INTERACTIVE_TOKEN
-        )
+        _register(task)
     return exe
+
+
+def set_interval(interval_seconds: int) -> None:
+    """Update the interval in place, keeping the executable the task runs."""
+    task = _get_task()
+    with _com_errors():
+        definition = task.Definition
+        for index in range(1, definition.Triggers.Count + 1):
+            trigger = definition.Triggers.Item(index)
+            if trigger.Type == _Trigger.TIME:
+                trigger.Repetition.Interval = _interval(interval_seconds)
+        _register(definition)
 
 
 def uninstall() -> None:
