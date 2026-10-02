@@ -24,9 +24,9 @@ def log_path() -> Path:
 
 
 class Settings(BaseModel):
-    """User-tunable settings for the background agent and one-shot commands."""
+    """User-tunable settings for scheduled refreshes and one-shot commands."""
 
-    interval_seconds: int = Field(default=600, ge=10)
+    interval_seconds: int = Field(default=600, ge=60)
     query: str = ""
     categories: str = "100"
     purity: str = "100"

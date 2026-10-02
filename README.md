@@ -20,24 +20,29 @@ uv run wallnext --help
 | `download-random`      | Download a random wallpaper to `./wallpapers/` |
 | `set-random`           | Set a random wallpaper as desktop background   |
 | `slideshow [interval]` | Change wallpaper every N seconds (default: 10) |
-| `config`               | Configure the background agent interactively   |
-| `service ...`          | Manage the background agent (see below)        |
+| `config`               | Configure search and refresh interval          |
+| `schedule ...`         | Refresh the wallpaper automatically (see below)|
 
-## Background agent
+## Automatic refresh
 
-Wallnext can run in the background and refresh the wallpaper on a schedule. It
-runs as a **per-user agent** started by a Windows Scheduled Task at logon — not
-a classic Windows service, because a service running in session 0 cannot change
-the interactive desktop's wallpaper.
+Wallnext refreshes the wallpaper on a schedule without any resident process: a
+hidden **Windows Scheduled Task** fires at logon and then every configured
+interval, and each run sets a single wallpaper and exits. A classic Windows
+service is not an option, because it runs in session 0 and cannot change the
+interactive desktop's wallpaper.
 
 ```bash
-wallnext config            # interactive: interval, query, sorting, resolution…
-wallnext service install   # register the logon task (hidden, auto-restart)
-wallnext service start     # start it now without waiting for logon
-wallnext service status    # show the scheduled task state
-wallnext service stop      # stop the running agent
-wallnext service uninstall # remove the task
+wallnext config             # interactive: interval, query, sorting, resolution…
+wallnext schedule install   # register the task (logon + every interval)
+wallnext schedule start     # resume refreshes and change the wallpaper now
+wallnext schedule stop      # pause refreshes
+wallnext schedule status    # show the scheduled task state
+wallnext schedule uninstall # remove the task
 ```
+
+Search settings are re-read on every run. The interval (minimum 60 seconds) is
+stored in the task trigger, so `wallnext config` re-registers the task when it
+changes.
 
 Configuration is stored in `%APPDATA%\wallnext\config.toml` and logs in
 `%APPDATA%\wallnext\wallnext.log`. Downloaded wallpapers are kept under

@@ -10,6 +10,7 @@ dependencies = [
     "httpx>=0.28.1",
     "nuitka>=4.1.2",
     "pydantic>=2.13.4",
+    "pywin32>=312",
     "rich>=15.0.0",
     "tomli-w>=1.2.0",
     "typer>=0.26.7",
@@ -19,6 +20,7 @@ dependencies = [
 dev = [
     "ruff>=0.15.17",
     "ty>=0.0.48",
+    "types-pywin32>=312.0.0.20260928",
 ]
 
 [project.scripts]

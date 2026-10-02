@@ -1,91 +1,90 @@
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
 import typer
 from rich.prompt import IntPrompt, Prompt
+from rich.table import Table
 
 from wallnext import config as cfg
+from wallnext import scheduler
 from wallnext.console import console, err_console
 from wallnext.exceptions import WallnextError
-from wallnext.service.agent import _prune
-from wallnext.sources.base import WallpaperSource
+from wallnext.refresh import logger, refresh, setup_file_logging
 from wallnext.sources.wallhaven.client import WallhavenRequester
 from wallnext.sources.wallhaven.source import WallhavenSource
-from wallnext.wallpaper import set_wallpaper
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
-_settings = cfg.load()
-wlhv_requester = WallhavenRequester()
-source: WallpaperSource = WallhavenSource(
-    requester=wlhv_requester, **_settings.search_params()
-)
-
 DirOption = Annotated[
-    Path,
-    typer.Option("--dir", "-d", help="Directory where wallpapers are saved."),
+    Path | None,
+    typer.Option(
+        "--dir", "-d", help="Directory where wallpapers are saved. [default: from config]"
+    ),
 ]
 KeepOption = Annotated[
-    int,
-    typer.Option("--keep", "-k", help="How many wallpapers to keep on disk."),
+    int | None,
+    typer.Option(
+        "--keep", "-k", help="How many wallpapers to keep on disk. [default: from config]"
+    ),
 ]
 
 
-def _fetch_and_set(source: WallpaperSource, dest_dir: Path, keep: int) -> None:
-    # Persist the image: Windows reads this path from the registry on every
-    # logon, so deleting it (as a temp file) leaves a black desktop after reboot.
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    dest = wlhv_requester.download(source.random_url(), dest_dir)
-    set_wallpaper(dest)
-    _prune(dest_dir, keep)
+def _fail(e: WallnextError) -> typer.Exit:
+    err_console.print(f"[bold red]Error:[/bold red] {e}")
+    return typer.Exit(1)
 
 
 @app.command(help="Fetch the most popular wallpapers of the last month.")
 def get_top_wallpapers():
     try:
-        result = wlhv_requester.toplist()
-        console.print_json(result.model_dump_json(indent=2))
+        result = WallhavenRequester().toplist()
     except WallnextError as e:
-        err_console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise _fail(e)
+    console.print_json(result.model_dump_json(indent=2))
 
 
-@app.command(help="Download a random wallpaper from the top list.")
-def download_random() -> None:
+@app.command(help="Download a random wallpaper to ./wallpapers.")
+def download_random():
+    requester = WallhavenRequester()
+    source = WallhavenSource(requester=requester, **cfg.load().search_params())
     try:
-        url = source.random_url()
-        dest = wlhv_requester.download(url, Path.cwd() / "wallpapers")
-        console.print(f"[green]✓[/green] Saved: [cyan]{dest}[/cyan]")
+        dest = requester.download(source.random_url(), Path.cwd() / "wallpapers")
     except WallnextError as e:
-        err_console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise _fail(e)
+    console.print(f"[green]✓[/green] Saved: [cyan]{dest}[/cyan]")
 
 
 @app.command(help="Set a random wallpaper as desktop background.")
-def set_random(
-    dir: DirOption = _settings.download_dir,
-    keep: KeepOption = _settings.keep,
-):
+def set_random(dir: DirOption = None, keep: KeepOption = None):
+    # Also the scheduled task's entry point: it has no console, so the outcome
+    # is recorded in the log file.
+    setup_file_logging()
+    settings = cfg.load()
     try:
-        _fetch_and_set(source, dir, keep)
-        console.print(f"[green]✓[/green] Wallpaper set ([cyan]{dir}[/cyan]).")
+        dest = refresh(settings, dir or settings.download_dir, keep or settings.keep)
     except WallnextError as e:
-        err_console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(1)
+        logger.warning("Refresh failed: %s", e)
+        raise _fail(e)
+    logger.info("Wallpaper set: %s", dest.name)
+    console.print(f"[green]✓[/green] Wallpaper set: [cyan]{dest}[/cyan]")
 
 
 @app.command(help="Change the wallpaper every N seconds until stopped.")
 def slideshow(
     interval: Annotated[int, typer.Argument()] = 10,
-    dir: DirOption = _settings.download_dir,
-    keep: KeepOption = _settings.keep,
+    dir: DirOption = None,
+    keep: KeepOption = None,
 ):
-    console.print(f"[cyan]Starting slideshow[/cyan] (interval: {interval}s). Press Ctrl+C to stop.")
+    settings = cfg.load()
+    console.print(
+        f"[cyan]Starting slideshow[/cyan] (interval: {interval}s). Press Ctrl+C to stop."
+    )
     try:
         while True:
             try:
-                _fetch_and_set(source, dir, keep)
+                refresh(settings, dir or settings.download_dir, keep or settings.keep)
                 console.print("[green]✓[/green] Wallpaper updated.")
             except WallnextError as e:
                 err_console.print(f"[yellow]Warning:[/yellow] {e} — retrying next cycle.")
@@ -94,13 +93,16 @@ def slideshow(
         console.print("\n[cyan]Slideshow stopped.[/cyan]")
 
 
-@app.command(help="Configure the background agent interactively.")
+@app.command(help="Configure wallpaper search and refresh interval interactively.")
 def config():
     current = cfg.load()
-    interval = IntPrompt.ask(
-        "Interval between wallpaper changes (seconds)",
-        default=current.interval_seconds,
-    )
+    while (
+        interval := IntPrompt.ask(
+            "Interval between wallpaper changes (seconds, min 60)",
+            default=current.interval_seconds,
+        )
+    ) < 60:
+        err_console.print("[yellow]The interval must be at least 60 seconds.[/yellow]")
     query = Prompt.ask("Search query (empty for none)", default=current.query)
     sorting = Prompt.ask(
         "Sorting",
@@ -111,100 +113,104 @@ def config():
     categories = Prompt.ask(
         "Categories bitmask (general/anime/people)", default=current.categories
     )
-    purity = Prompt.ask(
-        "Purity bitmask (sfw/sketchy/nsfw)", default=current.purity
-    )
+    purity = Prompt.ask("Purity bitmask (sfw/sketchy/nsfw)", default=current.purity)
     atleast = Prompt.ask(
         "Minimum resolution, e.g. 1920x1080 (empty for any)", default=current.atleast
     )
-    settings = cfg.Settings(
-        interval_seconds=interval,
-        query=query,
-        sorting=sorting,
-        toprange=toprange,
-        categories=categories,
-        purity=purity,
-        atleast=atleast,
-        download_dir=current.download_dir,
-        keep=current.keep,
+    settings = current.model_copy(
+        update={
+            "interval_seconds": interval,
+            "query": query,
+            "sorting": sorting,
+            "toprange": toprange,
+            "categories": categories,
+            "purity": purity,
+            "atleast": atleast,
+        }
     )
     path = cfg.save(settings)
     console.print(f"[green]✓[/green] Config saved to [cyan]{path}[/cyan]")
 
+    # The interval lives in the scheduled task's trigger, so re-register it.
+    if interval != current.interval_seconds and scheduler.is_installed():
+        try:
+            scheduler.install(interval)
+        except WallnextError as e:
+            raise _fail(e)
+        console.print("[green]✓[/green] Schedule updated with the new interval.")
 
-service_app = typer.Typer(
-    help="Manage the background wallpaper agent (Windows scheduled task)."
+
+schedule_app = typer.Typer(
+    help="Refresh the wallpaper automatically (Windows Task Scheduler)."
 )
-app.add_typer(service_app, name="service")
+app.add_typer(schedule_app, name="schedule")
 
 
-@service_app.command(help="Install the agent to start automatically at logon.")
+@schedule_app.command(help="Refresh at logon and every configured interval.")
 def install():
-    from wallnext.service import manager
-
     try:
-        manager.install()
+        exe = scheduler.install(cfg.load().interval_seconds)
     except WallnextError as e:
-        err_console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(1)
-    console.print(
-        "[green]✓[/green] Agent installed. It starts at next logon — "
-        "use [cyan]wallnext service start[/cyan] to run it now."
-    )
+        raise _fail(e)
+    console.print(f"[green]✓[/green] Schedule installed ([cyan]{exe}[/cyan]).")
 
 
-@service_app.command(help="Remove the agent's scheduled task.")
+@schedule_app.command(help="Remove the scheduled task.")
 def uninstall():
-    from wallnext.service import manager
-
     try:
-        manager.uninstall()
+        scheduler.uninstall()
     except WallnextError as e:
-        err_console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(1)
-    console.print("[green]✓[/green] Agent uninstalled.")
+        raise _fail(e)
+    console.print("[green]✓[/green] Schedule removed.")
 
 
-@service_app.command(help="Start the agent now.")
+@schedule_app.command(help="Resume scheduled refreshes and change the wallpaper now.")
 def start():
-    from wallnext.service import manager
-
     try:
-        manager.start()
+        scheduler.start()
     except WallnextError as e:
-        err_console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(1)
-    console.print("[green]✓[/green] Agent started.")
+        raise _fail(e)
+    console.print("[green]✓[/green] Refreshes resumed.")
 
 
-@service_app.command(help="Stop the running agent.")
+@schedule_app.command(help="Pause scheduled refreshes.")
 def stop():
-    from wallnext.service import manager
-
     try:
-        manager.stop()
+        scheduler.stop()
     except WallnextError as e:
-        err_console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(1)
-    console.print("[green]✓[/green] Agent stopped.")
+        raise _fail(e)
+    console.print("[green]✓[/green] Refreshes paused.")
 
 
-@service_app.command(help="Show the agent's scheduled task status.")
+@schedule_app.command(help="Show the scheduled task status.")
 def status():
-    from wallnext.service import manager
-
+    if not scheduler.is_installed():
+        console.print(
+            "Schedule not installed — run [cyan]wallnext schedule install[/cyan]."
+        )
+        return
     try:
-        console.print(manager.status())
+        s = scheduler.status()
     except WallnextError as e:
-        err_console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise _fail(e)
 
+    def when(moment: datetime | None) -> str:
+        return f"{moment:%Y-%m-%d %H:%M:%S}" if moment else "—"
 
-@service_app.command(help="Run the agent loop in the foreground (used by the scheduled task).")
-def run():
-    from wallnext.service.agent import run_agent
+    if s.last_result is None:
+        result = "—"
+    elif s.last_result == 0:
+        result = "[green]success[/green]"
+    else:
+        result = f"[red]failed (code {s.last_result:#x})[/red] — see {cfg.log_path()}"
 
-    run_agent()
+    table = Table.grid(padding=(0, 2))
+    table.add_row("State", s.state.name.lower())
+    table.add_row("Command", s.command)
+    table.add_row("Last run", when(s.last_run))
+    table.add_row("Last result", result)
+    table.add_row("Next run", when(s.next_run))
+    console.print(table)
 
 
 def main():
