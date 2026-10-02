@@ -18,7 +18,14 @@ NUITKA_FLAGS := \
 build: ## Compile wallnext into a standalone .exe with Nuitka
 	uv run nuitka $(NUITKA_FLAGS) src/wallnext/main.py
 
+scoop-install: build ## Build and install it with Scoop
+	pwsh -NoProfile -File scripts/scoop-local.ps1
+
+scoop-uninstall: ## Remove the scheduled task and the Scoop install
+	-wallnext schedule uninstall
+	pwsh -NoProfile -Command "scoop uninstall wallnext"
+
 clean: ## Remove build artifacts
 	rm -rf build
 
-.PHONY: help build clean
+.PHONY: help build scoop-install scoop-uninstall clean
