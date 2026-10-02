@@ -1,7 +1,7 @@
 import random
 from typing import Any
 
-from wallnext.wallhaven.wallhaven_requester import WallhavenRequester
+from wallnext.sources.wallhaven.client import WallhavenRequester
 
 
 class WallhavenSource:

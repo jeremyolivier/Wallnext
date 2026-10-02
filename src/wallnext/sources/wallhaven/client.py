@@ -3,7 +3,7 @@ from pathlib import Path
 import httpx
 
 from wallnext.exceptions import WallhavenAPIError, WallhavenNetworkError
-from wallnext.wallhaven.models import SearchResult
+from wallnext.sources.wallhaven.models import SearchResult
 
 
 class WallhavenRequester:

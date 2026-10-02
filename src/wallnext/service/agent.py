@@ -5,8 +5,8 @@ from pathlib import Path
 
 from wallnext import config
 from wallnext.exceptions import WallnextError
-from wallnext.sources.wallhaven import WallhavenSource
-from wallnext.wallhaven.wallhaven_requester import WallhavenRequester
+from wallnext.sources.wallhaven.client import WallhavenRequester
+from wallnext.sources.wallhaven.source import WallhavenSource
 from wallnext.wallpaper import set_wallpaper
 
 logger = logging.getLogger("wallnext.agent")

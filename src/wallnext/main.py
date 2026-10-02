@@ -9,8 +9,8 @@ from wallnext import config as cfg
 from wallnext.console import console, err_console
 from wallnext.exceptions import WallnextError
 from wallnext.sources.base import WallpaperSource
-from wallnext.sources.wallhaven import WallhavenSource
-from wallnext.wallhaven.wallhaven_requester import WallhavenRequester
+from wallnext.sources.wallhaven.client import WallhavenRequester
+from wallnext.sources.wallhaven.source import WallhavenSource
 from wallnext.wallpaper import set_wallpaper
 
 app = typer.Typer(pretty_exceptions_enable=False)
