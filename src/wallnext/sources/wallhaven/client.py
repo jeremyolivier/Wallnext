@@ -1,4 +1,4 @@
-import httpx
+import httpx2
 
 from wallnext.sources import http
 from wallnext.sources.wallhaven.models import Collection, Collections, SearchResult
@@ -10,7 +10,7 @@ class WallhavenRequester:
         # Only sent for collections: searches stay free of the account's filters.
         self._key_header = {"X-API-Key": api_key} if api_key else {}
 
-    def _get(self, *args, **kwargs) -> httpx.Response:
+    def _get(self, *args, **kwargs) -> httpx2.Response:
         return http.get(self.client, "Wallhaven", *args, **kwargs)
 
     def search(

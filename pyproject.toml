@@ -7,7 +7,7 @@ name = "wallnext"
 version = "1.0.0"
 requires-python = ">=3.14"
 dependencies = [
-    "httpx>=0.28.1",
+    "httpx2>=2.13.1",
     "pydantic>=2.13.4",
     "pyside6-essentials>=6.11.2",
     "pywin32>=312",
