@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated
@@ -126,7 +127,20 @@ def status():
 
 
 def main():
-    app()
+    # Windows starts screensavers (wallnext.scr) with /s, /p <window> or /c.
+    mode = sys.argv[1][:2].lower() if len(sys.argv) > 1 else ""
+    if mode == "/s":
+        from wallnext.screensaver.show import run  # lazy: Qt only when needed
+
+        run()
+    elif mode == "/p":
+        pass  # no live preview: Windows leaves its preview area blank
+    elif mode == "/c":
+        from wallnext import gui
+
+        gui.run()
+    else:
+        app()
 
 
 if __name__ == "__main__":

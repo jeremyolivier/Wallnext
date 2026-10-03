@@ -2,8 +2,11 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from wallnext import config, history, sources
+from wallnext import config, history, lockscreen, sources
 from wallnext.download import download
+from wallnext.exceptions import WallnextError
+from wallnext.screensaver import cache as screensaver_cache
+from wallnext.screensaver import windows as screensaver
 from wallnext.wallpaper import set_wallpaper
 
 logger = logging.getLogger("wallnext")
@@ -40,5 +43,15 @@ def refresh(settings: config.Settings, dest_dir: Path) -> Path:
     dest = download(wallpaper.url, dest_dir / wallpaper.filename)
     set_wallpaper(dest)
     _remove_others(dest_dir, dest)
+    if settings.lock_screen:
+        try:
+            lockscreen.set_picture(dest)
+        except WallnextError as e:  # the wallpaper itself is set
+            logger.warning("%s", e)
+    if screensaver.is_enabled():
+        try:
+            screensaver_cache.add(dest)
+        except OSError as e:  # the wallpaper is set: a cache miss is not fatal
+            logger.warning("Screensaver cache: %s", e)
     history.record(source.name, source.page_url(dest) or wallpaper.url)
     return dest

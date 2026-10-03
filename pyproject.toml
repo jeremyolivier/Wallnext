@@ -19,6 +19,9 @@ dependencies = [
     "rich>=15.0.0",
     "tomli-w>=1.2.0",
     "typer>=0.26.7",
+    "winrt-windows-foundation>=3.2.1",
+    "winrt-windows-storage>=3.2.1",
+    "winrt-windows-system-userprofile>=3.2.1",
 ]
 
 [dependency-groups]
