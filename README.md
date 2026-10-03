@@ -29,8 +29,14 @@ Open **Wallnext** from the Start menu:
 - **Sources**: tick the sources to use and **Configure…** them. Each new
   wallpaper comes from one of the ticked sources, at random.
 - **Wallpaper**: the current wallpaper and a link to its page, **Next
-  wallpaper**, the **History** of past ones, and how often to change it.
+  wallpaper**, the **History** of past ones, how often to change it, and
+  whether the lock screen follows.
+- **Screensaver**: make Wallnext the Windows screensaver, a slideshow of
+  pictures from your sources on every screen. Any key or mouse move closes it.
 - **About**: version, licenses, and what Wallnext stores.
+
+The **Theme** button, under the pages, switches between following Windows,
+light and dark.
 
 The window does not need to stay open: a hidden Windows scheduled task changes
 the wallpaper at logon and then at every interval, each run setting one picture
@@ -62,9 +68,14 @@ Everything lives in `%APPDATA%\wallnext`:
 | `history.jsonl` | Past wallpapers, with their web address |
 | `wallnext.log` | Log of the scheduled changes |
 | `wallpapers\` | The current wallpaper only: Windows needs it on disk |
+| `screensaver\` | Up to 40 pictures for the screensaver |
 
 The Wallhaven API key is kept in the Windows Credential Manager
 (`wallnext/wallhaven`), not in the config file.
+
+The screensaver is `wallnext.scr`, a copy of `wallnext.exe` next to it: turning
+it on points `HKCU\Control Panel\Desktop` at it, as the right-click "Install"
+of a `.scr` does, so it needs no admin rights.
 
 ## Development
 
