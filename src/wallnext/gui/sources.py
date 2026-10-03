@@ -1,11 +1,11 @@
-"""Wallpaper sources listed in the window, each with its own settings dialog.
+"""Wallpaper sources listed in the window, with their settings dialogs.
 
-To add a source: write a dialog editing its settings and append it to SOURCES.
+To add a source to the window: append it to SOURCES, with a dialog editing its
+[sources.<key>] settings if it has any besides `enabled`.
 """
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Protocol
 
 from PySide6.QtCore import QRegularExpression
@@ -17,12 +17,13 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFormLayout,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QWidget,
 )
 
 from wallnext import config as cfg
-from wallnext.sources.wallhaven import source as wallhaven
+from wallnext import sources
 
 
 class SourceDialog(Protocol):
@@ -37,10 +38,13 @@ class SourceDialog(Protocol):
 
 @dataclass(frozen=True)
 class Source:
-    name: str
-    dialog: type[SourceDialog]
+    key: str  # as in wallnext.sources.SOURCES and config.toml
     summary: Callable[[cfg.Settings], str]  # one line describing its settings
-    page_url: Callable[[Path], str | None]  # web page of a wallpaper it downloaded
+    dialog: type[SourceDialog] | None = None
+
+    @property
+    def name(self) -> str:
+        return sources.SOURCES[self.key].name
 
 
 # --- Wallhaven -------------------------------------------------------------
@@ -66,7 +70,8 @@ CATEGORIES = ["General", "Anime", "People"]
 PURITIES = ["SFW", "Sketchy", "NSFW"]
 
 
-def wallhaven_summary(s: cfg.Settings) -> str:
+def wallhaven_summary(settings: cfg.Settings) -> str:
+    s = settings.sources.wallhaven
     parts = [
         f"“{s.query}”" if s.query else "Any keyword",
         SORTINGS.get(s.sorting, s.sorting),
@@ -84,6 +89,23 @@ def _combo(items: dict[str, str], current: str) -> QComboBox:
         combo.addItem(text, value)
     combo.setCurrentIndex(max(0, combo.findData(current)))
     return combo
+
+
+def _resolution(value: str) -> QLineEdit:
+    field = QLineEdit(value, placeholderText="Any, e.g. 2560x1440")
+    field.setValidator(
+        QRegularExpressionValidator(QRegularExpression(r"(\d{1,5}x\d{1,5})?"))
+    )
+    return field
+
+
+def _buttons(dialog: QDialog) -> QDialogButtonBox:
+    buttons = QDialogButtonBox(
+        QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+    )
+    buttons.accepted.connect(dialog.accept)
+    buttons.rejected.connect(dialog.reject)
+    return buttons
 
 
 class _Flags(QWidget):
@@ -104,11 +126,12 @@ class _Flags(QWidget):
 
 
 class WallhavenDialog(QDialog):
-    def __init__(self, settings: cfg.Settings, parent: QWidget) -> None:
+    def __init__(self, base: cfg.Settings, parent: QWidget) -> None:
         super().__init__(parent)
         self.setWindowTitle("Wallhaven")
         self.setMinimumWidth(420)
-        self._base = settings
+        self._base = base
+        settings = base.sources.wallhaven
 
         self._query = QLineEdit(settings.query, placeholderText="Any")
         self._query.setClearButtonEnabled(True)
@@ -116,20 +139,9 @@ class WallhavenDialog(QDialog):
         self._toprange = _combo(TOPRANGES, settings.toprange)
         self._sorting.currentIndexChanged.connect(self._sync_toprange)
         self._sync_toprange()
-        self._atleast = QLineEdit(
-            settings.atleast, placeholderText="Any, e.g. 2560x1440"
-        )
-        self._atleast.setValidator(
-            QRegularExpressionValidator(QRegularExpression(r"(\d{1,5}x\d{1,5})?"))
-        )
+        self._atleast = _resolution(settings.atleast)
         self._categories = _Flags(CATEGORIES, settings.categories)
         self._purity = _Flags(PURITIES, settings.purity)
-
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
 
         form = QFormLayout(self)
         form.addRow("Keywords", self._query)
@@ -138,37 +150,56 @@ class WallhavenDialog(QDialog):
         form.addRow("Minimum resolution", self._atleast)
         form.addRow("Categories", self._categories)
         form.addRow("Purity", self._purity)
-        form.addRow(buttons)
+        form.addRow(_buttons(self))
 
     def _sync_toprange(self) -> None:
         self._toprange.setEnabled(self._sorting.currentData() == "toplist")
 
     def settings(self) -> cfg.Settings:
-        return self._base.model_copy(
-            update={
-                "query": self._query.text().strip(),
-                "sorting": self._sorting.currentData(),
-                "toprange": self._toprange.currentData(),
-                "atleast": self._atleast.text().strip(),
-                "categories": self._categories.bitmask(),
-                "purity": self._purity.bitmask(),
-            }
+        return self._base.with_source(
+            "wallhaven",
+            query=self._query.text().strip(),
+            sorting=self._sorting.currentData(),
+            toprange=self._toprange.currentData(),
+            atleast=self._atleast.text().strip(),
+            categories=self._categories.bitmask(),
+            purity=self._purity.bitmask(),
         )
 
 
+# --- NASA APOD -------------------------------------------------------------
+
+
+def apod_summary(settings: cfg.Settings) -> str:
+    atleast = settings.sources.apod.atleast
+    return "Astronomy Picture of the Day · landscape" + (
+        f" · ≥ {atleast}" if atleast else ""
+    )
+
+
+class ApodDialog(QDialog):
+    def __init__(self, base: cfg.Settings, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("NASA APOD")
+        self.setMinimumWidth(360)
+        self._base = base
+        self._atleast = _resolution(base.sources.apod.atleast)
+
+        form = QFormLayout(self)
+        form.addRow("Minimum resolution", self._atleast)
+        hint = QLabel(
+            "Many older pictures are small: a high minimum skips them.",
+            wordWrap=True,
+        )
+        hint.setEnabled(False)
+        form.addRow(hint)
+        form.addRow(_buttons(self))
+
+    def settings(self) -> cfg.Settings:
+        return self._base.with_source("apod", atleast=self._atleast.text().strip())
+
+
 SOURCES = [
-    Source(
-        name="Wallhaven",
-        dialog=WallhavenDialog,
-        summary=wallhaven_summary,
-        page_url=wallhaven.page_url,
-    ),
+    Source(key="wallhaven", summary=wallhaven_summary, dialog=WallhavenDialog),
+    Source(key="apod", summary=apod_summary, dialog=ApodDialog),
 ]
-
-
-def identify(wallpaper: Path) -> tuple[Source, str] | None:
-    """The source a wallpaper came from and its web page, if known."""
-    for source in SOURCES:
-        if url := source.page_url(wallpaper):
-            return source, url
-    return None

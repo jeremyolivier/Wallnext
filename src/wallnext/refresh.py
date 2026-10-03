@@ -2,9 +2,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from wallnext import config
-from wallnext.sources.wallhaven.client import WallhavenRequester
-from wallnext.sources.wallhaven.source import WallhavenSource
+from wallnext import config, sources
+from wallnext.download import download
 from wallnext.wallpaper import set_wallpaper
 
 logger = logging.getLogger("wallnext")
@@ -31,12 +30,10 @@ def prune(download_dir: Path, keep: int) -> None:
 
 def refresh(settings: config.Settings, dest_dir: Path, keep: int) -> Path:
     """Download a wallpaper matching `settings`, apply it, and prune old ones."""
-    requester = WallhavenRequester()
-    source = WallhavenSource(requester=requester, **settings.search_params())
+    wallpaper = sources.create(settings).random_wallpaper()
     # Persist the image: Windows reads this path from the registry on every
     # logon, so deleting it (as a temp file) leaves a black desktop after reboot.
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    dest = requester.download(source.random_url(), dest_dir)
+    dest = download(wallpaper.url, dest_dir / wallpaper.filename)
     set_wallpaper(dest)
     prune(dest_dir, keep)
     return dest

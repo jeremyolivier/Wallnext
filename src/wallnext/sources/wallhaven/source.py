@@ -1,12 +1,15 @@
 import random
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
+from wallnext.sources.base import Wallpaper
 from wallnext.sources.wallhaven.client import WallhavenRequester
 
 
 class WallhavenSource:
+    name: ClassVar[str] = "Wallhaven"
+
     def __init__(
         self,
         requester: WallhavenRequester | None = None,
@@ -16,16 +19,16 @@ class WallhavenSource:
         # Empty params -> default top list; otherwise drive the search endpoint.
         self._search_params = {k: v for k, v in search_params.items() if v != ""}
 
-    def random_url(self) -> str:
+    def random_wallpaper(self) -> Wallpaper:
         if self._search_params:
             result = self._requester.search(**self._search_params)
         else:
             result = self._requester.toplist()
-        return random.choice(result.data).path
+        url = random.choice(result.data).path
+        # Keep Wallhaven's file name, wallhaven-<id>.<ext>: page_url relies on it.
+        return Wallpaper(url=url, filename=url.rsplit("/", 1)[-1])
 
-
-def page_url(wallpaper: Path) -> str | None:
-    """The wallhaven.cc page of a downloaded wallpaper, if it came from Wallhaven."""
-    # Downloads keep Wallhaven's file name: wallhaven-<id>.<ext>.
-    match = re.fullmatch(r"wallhaven-(\w+)", wallpaper.stem)
-    return f"https://wallhaven.cc/w/{match[1]}" if match else None
+    @staticmethod
+    def page_url(wallpaper: Path) -> str | None:
+        match = re.fullmatch(r"wallhaven-(\w+)", wallpaper.stem)
+        return f"https://wallhaven.cc/w/{match[1]}" if match else None

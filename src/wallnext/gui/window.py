@@ -22,9 +22,10 @@ from PySide6.QtWidgets import (
 from wallnext import config as cfg
 from wallnext import scheduler
 from wallnext.exceptions import WallnextError
-from wallnext.gui.sources import SOURCES, Source, identify
+from wallnext.gui.sources import SOURCES, Source
 from wallnext.gui.widgets import Preview
 from wallnext.refresh import refresh
+from wallnext.sources import identify
 from wallnext.wallpaper import current_wallpaper
 
 _SAVE_DELAY_MS = 600
@@ -108,24 +109,34 @@ class SettingsWindow(QWidget):
         box = QGroupBox("Sources")
         layout = QVBoxLayout(box)
         for source in SOURCES:
-            name = QLabel(source.name)
-            bold = QFont(name.font())
+            enabled = QCheckBox(source.name)
+            bold = QFont(enabled.font())
             bold.setWeight(QFont.Weight.DemiBold)
-            name.setFont(bold)
+            enabled.setFont(bold)
+            enabled.setChecked(self._settings.source(source.key).enabled)
+            enabled.toggled.connect(
+                lambda on, key=source.key: self._enable_source(key, on)
+            )
             summary = QLabel(source.summary(self._settings))
             summary.setEnabled(False)  # dimmed, as secondary text
             self._summaries.append((source, summary))
             text = QVBoxLayout()
             text.setSpacing(2)
-            text.addWidget(name)
+            text.addWidget(enabled)
             text.addWidget(summary)
 
-            configure = QPushButton("Configure…")
-            configure.clicked.connect(lambda _=False, s=source: self._configure(s))
             row = QHBoxLayout()
             row.addLayout(text, 1)
-            row.addWidget(configure, alignment=Qt.AlignmentFlag.AlignVCenter)
+            if source.dialog:
+                configure = QPushButton("Configure…")
+                configure.clicked.connect(lambda _=False, s=source: self._configure(s))
+                row.addWidget(configure, alignment=Qt.AlignmentFlag.AlignVCenter)
             layout.addLayout(row)
+        self._no_source = QLabel(
+            "No source enabled: the wallpaper will not change.", wordWrap=True
+        )
+        layout.addWidget(self._no_source)
+        self._sync_no_source()
         return box
 
     def _schedule(self) -> QGroupBox:
@@ -153,7 +164,19 @@ class SettingsWindow(QWidget):
 
     # --- sources ----------------------------------------------------------
 
+    def _enable_source(self, key: str, on: bool) -> None:
+        self._flush_save()
+        self._settings = self._settings.with_source(key, enabled=on)
+        cfg.save(self._settings)
+        self._sync_no_source()
+
+    def _sync_no_source(self) -> None:
+        self._no_source.setVisible(
+            not any(self._settings.source(s.key).enabled for s in SOURCES)
+        )
+
     def _configure(self, source: Source) -> None:
+        assert source.dialog  # only sources with a dialog get the button
         self._flush_save()
         dialog = source.dialog(self._settings, self)
         if dialog.exec():
@@ -205,7 +228,7 @@ class SettingsWindow(QWidget):
         origin = identify(wallpaper) if wallpaper else None
         if origin:
             source, url = origin
-            self._preview.set_link(f"{source.name} · {url.rsplit('/', 1)[-1]}", url)
+            self._preview.set_link(f"View on {source.name}", url)
         else:
             self._preview.set_link("", None)
 
