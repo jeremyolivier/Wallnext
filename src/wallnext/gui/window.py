@@ -1,15 +1,12 @@
-"""The main window: current wallpaper, sources and schedule."""
+"""The main window: the sources, and one page per feature using them."""
 
-import os
 import threading
 from collections.abc import Callable
 
-from PySide6.QtCore import QObject, Qt, QTimer, Signal
-from PySide6.QtGui import QCloseEvent, QFont
+from PySide6.QtCore import QObject, QTimer, Signal
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QCheckBox,
-    QFormLayout,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -22,14 +19,24 @@ from PySide6.QtWidgets import (
 from wallnext import config as cfg
 from wallnext import scheduler
 from wallnext.exceptions import WallnextError
+from wallnext.gui.history import HistoryDialog
 from wallnext.gui.sources import SOURCES, Source
-from wallnext.gui.widgets import Preview
+from wallnext.gui.widgets import (
+    Card,
+    Navigation,
+    Preview,
+    secondary,
+    section_title,
+    stacked,
+)
 from wallnext.refresh import refresh
 from wallnext.sources import identify
 from wallnext.wallpaper import current_wallpaper
 
 _SAVE_DELAY_MS = 600
 _STATUS_POLL_MS = 5000
+# Room taken by a checkbox's box, so text under it lines up with its label.
+_CHECKBOX_INDENT = 28
 
 
 def _interval_label(minutes: int) -> str:
@@ -63,7 +70,7 @@ class SettingsWindow(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Wallnext")
-        self.setMinimumWidth(520)
+        self.setMinimumWidth(780)
         self._settings = cfg.load()
         self._summaries: list[tuple[Source, QLabel]] = []
 
@@ -72,17 +79,19 @@ class SettingsWindow(QWidget):
         self._poll = QTimer(self, interval=_STATUS_POLL_MS)
         self._poll.timeout.connect(self._refresh_status)
         self._refresher = _Refresher(self)
-        self._refresher.done.connect(self._on_refreshed)
-        self._refresher.failed.connect(self._on_refresh_failed)
+        self._refresher.done.connect(self._on_next_done)
+        self._refresher.failed.connect(self._on_next_failed)
 
+        # Segoe Fluent Icons code points: Globe, Personalize, TVMonitor.
+        navigation = Navigation()
+        navigation.add_page("Sources", "", self._sources())
+        navigation.add_page(
+            "Wallpaper", "", self._header(), self._actions(), self._schedule()
+        )
+        navigation.add_page("Screensaver", "", self._screensaver())
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
-        layout.addWidget(self._header())
-        layout.addLayout(self._actions())
-        layout.addWidget(self._sources())
-        layout.addWidget(self._schedule())
-        layout.addStretch()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(navigation)
 
         self._refresh_status()
         self._poll.start()
@@ -93,71 +102,69 @@ class SettingsWindow(QWidget):
         self._preview = Preview()
         return self._preview
 
-    def _actions(self) -> QHBoxLayout:
+    def _actions(self) -> QWidget:
         self._next = QPushButton("Next wallpaper")
         self._next.setDefault(True)
         self._next.clicked.connect(self._next_wallpaper)
-        open_folder = QPushButton("Open folder")
-        open_folder.clicked.connect(lambda: os.startfile(self._settings.download_dir))
-        row = QHBoxLayout()
-        row.addWidget(self._next)
-        row.addWidget(open_folder)
-        row.addStretch()
+        show_history = QPushButton("History…")
+        show_history.clicked.connect(lambda: HistoryDialog(self).exec())
+        row = QWidget()
+        layout = QHBoxLayout(row)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self._next)
+        layout.addWidget(show_history)
+        layout.addStretch()
         return row
 
-    def _sources(self) -> QGroupBox:
-        box = QGroupBox("Sources")
-        layout = QVBoxLayout(box)
+    def _sources(self) -> QWidget:
+        card = Card()
         for source in SOURCES:
             enabled = QCheckBox(source.name)
-            bold = QFont(enabled.font())
-            bold.setWeight(QFont.Weight.DemiBold)
-            enabled.setFont(bold)
             enabled.setChecked(self._settings.source(source.key).enabled)
             enabled.toggled.connect(
                 lambda on, key=source.key: self._enable_source(key, on)
             )
-            summary = QLabel(source.summary(self._settings))
-            summary.setEnabled(False)  # dimmed, as secondary text
+            summary = secondary(source.summary(self._settings))
+            summary.setIndent(_CHECKBOX_INDENT)  # line up with the name, not the box
             self._summaries.append((source, summary))
-            text = QVBoxLayout()
-            text.setSpacing(2)
-            text.addWidget(enabled)
-            text.addWidget(summary)
-
-            row = QHBoxLayout()
-            row.addLayout(text, 1)
+            configure = None
             if source.dialog:
                 configure = QPushButton("Configure…")
                 configure.clicked.connect(lambda _=False, s=source: self._configure(s))
-                row.addWidget(configure, alignment=Qt.AlignmentFlag.AlignVCenter)
-            layout.addLayout(row)
-        self._no_source = QLabel(
-            "No source enabled: the wallpaper will not change.", wordWrap=True
-        )
-        layout.addWidget(self._no_source)
+            card.add_row(stacked(enabled, summary), configure)
+        self._no_source = secondary("No source enabled: nothing to pick from.")
         self._sync_no_source()
-        return box
+        intro = secondary(
+            "Each new picture comes from one of the enabled sources, at random."
+        )
+        return stacked(intro, card, self._no_source)
 
-    def _schedule(self) -> QGroupBox:
+    def _schedule(self) -> QWidget:
         self._enabled = QCheckBox("Change the wallpaper automatically")
         self._enabled.toggled.connect(self._on_toggle)
+        hint = secondary(
+            "Windows does it in the background, even with this window closed."
+        )
+        hint.setIndent(_CHECKBOX_INDENT)
         self._interval = QSpinBox(minimum=1, maximum=7 * 24 * 60, suffix=" min")
         self._interval.setValue(max(1, self._settings.interval_seconds // 60))
+        self._interval.setMinimumWidth(120)
         self._interval.valueChanged.connect(self._save_timer.start)
 
-        box = QGroupBox("Schedule")
-        form = QFormLayout(box)
-        form.addRow(self._enabled)
-        form.addRow("Every", self._interval)
-        hint = QLabel(
-            "Windows changes the wallpaper in the background, even when this "
-            "window is closed.",
-            wordWrap=True,
+        card = Card()
+        card.add_row(stacked(self._enabled, hint))
+        card.add_row(QLabel("Every"), self._interval)
+        return stacked(section_title("Schedule"), card)
+
+    def _screensaver(self) -> QWidget:
+        card = Card()
+        card.add_row(
+            stacked(
+                QLabel("Coming soon"),
+                secondary("A screensaver showing pictures from your sources."),
+            )
         )
-        hint.setEnabled(False)
-        form.addRow(hint)
-        return box
+        return card
 
     # --- sources ----------------------------------------------------------
 
@@ -186,9 +193,7 @@ class SettingsWindow(QWidget):
 
     def _save_schedule(self) -> None:
         settings = self._settings.model_copy(
-            update={
-                "interval_seconds": self._interval.value() * 60,
-            }
+            update={"interval_seconds": self._interval.value() * 60}
         )
         cfg.save(settings)
         # The interval lives in the scheduled task's trigger.
@@ -248,7 +253,7 @@ class SettingsWindow(QWidget):
             every = _interval_label(self._interval.value())
             when = f"{state.next_run:%H:%M}" if state.next_run else "—"
             status = f"Every {every} · next at {when}"
-        self._preview.set_caption("Wallnext", status)
+        self._preview.set_caption("Current wallpaper", status)
 
     # --- actions ----------------------------------------------------------
 
@@ -258,14 +263,23 @@ class SettingsWindow(QWidget):
         self._next.setText("Fetching…")
         self._refresher.start(self._settings)
 
-    def _on_refreshed(self) -> None:
+    def _on_next_done(self) -> None:
+        self._reset_next_button()
+        if self._enabled.isChecked():
+            self._run(
+                lambda: scheduler.restart_countdown(self._settings.interval_seconds)
+            )
+        else:
+            self._refresh_status()
+
+    def _on_next_failed(self, message: str) -> None:
+        self._reset_next_button()
+        self._refresh_status()
+        QMessageBox.warning(self, "Wallnext", message)
+
+    def _reset_next_button(self) -> None:
         self._next.setEnabled(True)
         self._next.setText("Next wallpaper")
-        self._refresh_status()
-
-    def _on_refresh_failed(self, message: str) -> None:
-        self._on_refreshed()
-        QMessageBox.warning(self, "Wallnext", message)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self._flush_save()

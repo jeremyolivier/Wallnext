@@ -13,7 +13,7 @@ import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import IntEnum
 from pathlib import Path
 from typing import Any
@@ -200,6 +200,21 @@ def set_interval(interval_seconds: int) -> None:
             trigger = definition.Triggers.Item(index)
             if trigger.Type == _Trigger.TIME:
                 trigger.Repetition.Interval = _interval(interval_seconds)
+        _register(definition)
+
+
+def restart_countdown(interval_seconds: int) -> None:
+    """Push the next scheduled refresh a full interval from now."""
+    # A future start boundary: StartWhenAvailable sees no missed run.
+    task = _get_task()
+    start = datetime.now() + timedelta(seconds=interval_seconds)  # noqa: DTZ005
+    with _com_errors():
+        definition = task.Definition
+        for index in range(1, definition.Triggers.Count + 1):
+            trigger = definition.Triggers.Item(index)
+            if trigger.Type == _Trigger.TIME:
+                # No offset on purpose: Task Scheduler reads it as local time.
+                trigger.StartBoundary = start.isoformat(timespec="seconds")
         _register(definition)
 
 
