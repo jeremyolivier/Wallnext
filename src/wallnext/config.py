@@ -135,7 +135,12 @@ def save(settings: Settings) -> Path:
     """Persist settings to the config file, creating parent dirs as needed."""
     path = config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    # mode="json" turns Path into str so tomli_w can serialize it.
-    with path.open("wb") as f:
-        tomli_w.dump(settings.model_dump(mode="json"), f)
+    # mode="json" turns Path into str; TOML has no null, so unset values are
+    # left out and come back as their default on load.
+    text = tomli_w.dumps(settings.model_dump(mode="json", exclude_none=True))
+    # Write a temporary file and swap it in: a failure never leaves the
+    # config half written.
+    tmp = path.with_suffix(".toml.tmp")
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(path)
     return path
