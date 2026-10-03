@@ -1,3 +1,5 @@
+<img src="assets/wallnext.png" alt="" width="96" align="right">
+
 # Wallnext
 
 ![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)

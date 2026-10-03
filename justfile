@@ -6,7 +6,7 @@ version := `uv version --short --color never`
 # build/main.build is kept and LTO is off so rebuilds only recompile what changed.
 # Pygments lexers/styles are only used to colour code; keep just their _mapping index.
 # The screensaver needs Qt Quick (qml) and its slideshow.qml (package data).
-nuitka_flags := "--mode=standalone --assume-yes-for-downloads --windows-console-mode=attach --enable-plugin=pyside6 --lto=no '--nofollow-import-to=pygments.lexers.[!_]*' '--nofollow-import-to=pygments.styles.[!_]*' --include-qt-plugins=qml --include-package-data=wallnext --output-dir=build --output-filename=wallnext"
+nuitka_flags := "--mode=standalone --assume-yes-for-downloads --windows-console-mode=attach --enable-plugin=pyside6 --lto=no '--nofollow-import-to=pygments.lexers.[!_]*' '--nofollow-import-to=pygments.styles.[!_]*' --include-qt-plugins=qml --include-package-data=wallnext --windows-icon-from-ico=assets/wallnext.ico --output-dir=build --output-filename=wallnext"
 
 # Shown in the exe's Properties > Details, and read by the About page.
 version_info := "--product-name=Wallnext --file-description=Wallnext --product-version=" + version + " --file-version=" + version + " '--company-name=Jérémy Olivier' '--copyright=Copyright (c) 2026 Jérémy Olivier'"
@@ -30,7 +30,7 @@ package base_url:
 
 # Build the Windows installer into build/dist (needs WiX: scoop install wixtoolset)
 msi:
-    wix build installer/wallnext.wxs -arch x64 -d Version={{ version }} -b 'dist={{ justfile_directory() }}/build/main.dist' -o build/dist/Wallnext-{{ version }}.msi -pdbtype none -acceptEula wix7
+    wix build installer/wallnext.wxs -arch x64 -d Version={{ version }} -b 'dist={{ justfile_directory() }}/build/main.dist' -b 'assets={{ justfile_directory() }}/assets' -o build/dist/Wallnext-{{ version }}.msi -pdbtype none -acceptEula wix7
 
 # Build the exe and launch it, without installing it
 run-build: build
@@ -52,6 +52,10 @@ bump kind:
     git add pyproject.toml uv.lock
     git commit -m "🔖 Release v$(uv version --short --color never)"
     git tag -a "v$(uv version --short --color never)" -m "Release v$(uv version --short --color never)"
+
+# Render the app icon (assets/wallnext.ico, .png) from src/wallnext/gui/icons/wallnext.svg
+icon:
+    uv run python scripts/icon.py
 
 # Remove build artifacts
 clean:

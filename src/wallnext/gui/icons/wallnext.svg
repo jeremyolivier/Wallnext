@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2B88D8"/>
+      <stop offset="1" stop-color="#8764B8"/>
+    </linearGradient>
+  </defs>
+  <!-- Mountains follow the tile's rounded corners: Qt's SVG renderer has no clipPath. -->
+  <path fill="url(#sky)" d="M68 16H188A52 52 0 0 1 240 68V188A52 52 0 0 1 188 240H68A52 52 0 0 1 16 188V68A52 52 0 0 1 68 16Z"/>
+  <circle cx="172" cy="84" r="26" fill="#FFC83D"/>
+  <path fill="#FFFFFF" fill-opacity="0.4" d="M16 172L98 108L134 138L178 96L240 148V188A52 52 0 0 1 188 240H68A52 52 0 0 1 16 188Z"/>
+  <path fill="#4C3D8F" d="M16 184L88 136L148 192L188 162L240 186V188A52 52 0 0 1 188 240H68A52 52 0 0 1 16 188Z"/>
+</svg>

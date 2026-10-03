@@ -5,11 +5,13 @@ import sys
 from collections.abc import Callable
 
 import win32api
-from PySide6.QtGui import QFont, QFontDatabase
+from PySide6.QtCore import QSize
+from PySide6.QtGui import QFont, QFontDatabase, QIcon
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFrame,
+    QHBoxLayout,
     QLabel,
     QPlainTextEdit,
     QPushButton,
@@ -18,7 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from wallnext import notices
-from wallnext.gui.widgets import Card, secondary, section_title, stacked
+from wallnext.gui.widgets import LOGO, Card, secondary, section_title, stacked
 
 AUTHOR = "Jérémy Olivier"
 REPOSITORY = "https://github.com/jeremyolivier/wallnext"
@@ -75,10 +77,15 @@ def sections(parent: QWidget) -> list[QWidget]:
     font.setWeight(QFont.Weight.DemiBold)
     name.setFont(font)
     app = Card()
-    app.add_row(
-        stacked(name, secondary(f"© 2026 {AUTHOR} · MIT License")),
-        _link("Source code", REPOSITORY),
-    )
+    logo = QLabel()
+    logo.setPixmap(QIcon(str(LOGO)).pixmap(QSize(48, 48), logo.devicePixelRatioF()))
+    identity = QWidget()
+    row = QHBoxLayout(identity)
+    row.setContentsMargins(0, 0, 0, 0)
+    row.setSpacing(14)
+    row.addWidget(logo)
+    row.addWidget(stacked(name, secondary(f"© 2026 {AUTHOR} · MIT License")), 1)
+    app.add_row(identity, _link("Source code", REPOSITORY))
     app.add_row(
         stacked(QLabel("License"), secondary("Provided as is, without warranty.")),
         _button("View…", lambda: show("License", notices.license_text)),

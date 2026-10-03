@@ -17,6 +17,9 @@
     <MediaTemplate EmbedCab="yes" />
 
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/jeremyolivier/wallnext" />
+    <!-- Shown in Settings > Apps; the shortcut takes the exe's own icon. -->
+    <Icon Id="wallnext.ico" SourceFile="!(bindpath.assets)\wallnext.ico" />
+    <Property Id="ARPPRODUCTICON" Value="wallnext.ico" />
 
     <!-- Per-user by default: Windows Installer redirects it to %LOCALAPPDATA%\Programs. -->
     <StandardDirectory Id="ProgramFiles6432Folder">

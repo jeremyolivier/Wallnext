@@ -2,11 +2,12 @@
 
 import sys
 
-from PySide6.QtGui import QFont, QFontDatabase
+from PySide6.QtGui import QFont, QFontDatabase, QIcon
 from PySide6.QtWidgets import QApplication
 
 from wallnext import config as cfg
 from wallnext.gui import theme
+from wallnext.gui.widgets import LOGO
 from wallnext.gui.window import SettingsWindow
 
 # Corbel ships with Windows since Vista; elsewhere Qt keeps its default.
@@ -17,6 +18,7 @@ _FONT_SIZE = 11
 def run(page: str | None = None) -> None:
     app = QApplication(sys.argv)
     app.setApplicationDisplayName("Wallnext")
+    app.setWindowIcon(QIcon(str(LOGO)))
     if _FONT in QFontDatabase.families():
         app.setFont(QFont(_FONT, _FONT_SIZE))
     theme.apply(cfg.load().theme)

@@ -190,6 +190,7 @@ class Card(QFrame):
 
 
 _LOGOS = Path(__file__).with_name("icons")
+LOGO = _LOGOS / "wallnext.svg"  # the app's own
 # Wide logos (NASA's) may use more of the tile's width than square ones.
 _TILE, _LOGO, _LOGO_WIDE = 36, 20, 28
 
