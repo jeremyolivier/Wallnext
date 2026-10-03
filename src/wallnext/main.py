@@ -16,13 +16,9 @@ app = typer.Typer(pretty_exceptions_enable=False)
 DirOption = Annotated[
     Path | None,
     typer.Option(
-        "--dir", "-d", help="Directory where wallpapers are saved. [default: from config]"
-    ),
-]
-KeepOption = Annotated[
-    int | None,
-    typer.Option(
-        "--keep", "-k", help="How many wallpapers to keep on disk. [default: from config]"
+        "--dir",
+        "-d",
+        help="Directory where wallpapers are saved. [default: from config]",
     ),
 ]
 
@@ -42,13 +38,13 @@ def _fail(e: WallnextError) -> typer.Exit:
 
 
 @app.command(help="Set a random wallpaper as desktop background.")
-def set_random(dir: DirOption = None, keep: KeepOption = None):
+def set_random(dir: DirOption = None):
     # Also the scheduled task's entry point: it has no console, so the outcome
     # is recorded in the log file.
     setup_file_logging()
     settings = cfg.load()
     try:
-        dest = refresh(settings, dir or settings.download_dir, keep or settings.keep)
+        dest = refresh(settings, dir or settings.download_dir)
     except WallnextError as e:
         logger.warning("Refresh failed: %s", e)
         raise _fail(e)

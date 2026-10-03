@@ -48,7 +48,9 @@ changing it.
 Configuration (interval, query, sorting, resolution…) is stored in
 `%APPDATA%\wallnext\config.toml` and logs in
 `%APPDATA%\wallnext\wallnext.log`. Downloaded wallpapers are kept under
-`%APPDATA%\wallnext\wallpapers` (last 10 by default, configurable via `keep`).
+`%APPDATA%\wallnext\wallpapers` (only the current one: Windows needs it on
+disk). Past wallpapers are listed, with their web address, in
+`%APPDATA%\wallnext\history.jsonl` and the window's **History**.
 
 ## Sources
 

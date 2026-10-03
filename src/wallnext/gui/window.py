@@ -52,7 +52,7 @@ class _Refresher(QObject):
 
     def _run(self, settings: cfg.Settings) -> None:
         try:
-            refresh(settings, settings.download_dir, settings.keep)
+            refresh(settings, settings.download_dir)
         except WallnextError as e:
             self.failed.emit(str(e))
         else:
@@ -144,15 +144,12 @@ class SettingsWindow(QWidget):
         self._enabled.toggled.connect(self._on_toggle)
         self._interval = QSpinBox(minimum=1, maximum=7 * 24 * 60, suffix=" min")
         self._interval.setValue(max(1, self._settings.interval_seconds // 60))
-        self._keep = QSpinBox(minimum=1, maximum=1000, value=self._settings.keep)
-        for spin in (self._interval, self._keep):
-            spin.valueChanged.connect(self._save_timer.start)
+        self._interval.valueChanged.connect(self._save_timer.start)
 
         box = QGroupBox("Schedule")
         form = QFormLayout(box)
         form.addRow(self._enabled)
         form.addRow("Every", self._interval)
-        form.addRow("Wallpapers kept on disk", self._keep)
         hint = QLabel(
             "Windows changes the wallpaper in the background, even when this "
             "window is closed.",
@@ -191,7 +188,6 @@ class SettingsWindow(QWidget):
         settings = self._settings.model_copy(
             update={
                 "interval_seconds": self._interval.value() * 60,
-                "keep": self._keep.value(),
             }
         )
         cfg.save(settings)

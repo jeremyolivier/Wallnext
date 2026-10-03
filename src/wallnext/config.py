@@ -92,7 +92,6 @@ class Settings(BaseModel):
 
     interval_seconds: int = Field(default=600, ge=60)
     download_dir: Path = Field(default_factory=lambda: app_data_dir() / "wallpapers")
-    keep: int = Field(default=10, ge=1)
     sources: SourcesSettings = Field(default_factory=SourcesSettings)
 
     def source(self, key: str) -> SourceSettings:
