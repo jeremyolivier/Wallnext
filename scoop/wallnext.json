@@ -11,10 +11,19 @@
   },
   "extract_dir": "main.dist",
   "bin": "wallnext.exe",
+  "shortcuts": [
+    [
+      "wallnext.exe",
+      "Wallnext"
+    ]
+  ],
+  "uninstaller": {
+    "script": [
+      "if ($cmd -eq 'uninstall') { Unregister-ScheduledTask -TaskName wallnext -Confirm:$false -ErrorAction SilentlyContinue }"
+    ]
+  },
   "notes": [
-    "Configure:             run wallnext (opens the settings window)",
-    "Schedule refreshes:    wallnext schedule install",
-    "Refresh now:           wallnext schedule start",
-    "Config & logs live in %APPDATA%\\wallnext\\."
+    "Open Wallnext from the Start menu to pick sources and turn on automatic changes.",
+    "Config and logs live in %APPDATA%\\wallnext\\."
   ]
 }
