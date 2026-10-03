@@ -1,17 +1,25 @@
 # Windows-only project: recipes run in PowerShell.
 set windows-shell := ["pwsh", "-NoProfile", "-Command"]
 
+version := `uv version --short`
+
 # build/main.build is kept and LTO is off so rebuilds only recompile what changed.
 # Pygments lexers/styles are only used to colour code; keep just their _mapping index.
-nuitka_flags := "--mode=standalone --assume-yes-for-downloads --windows-console-mode=attach --enable-plugin=pyside6 --lto=no '--nofollow-import-to=pygments.lexers.[!_]*' '--nofollow-import-to=pygments.styles.[!_]*' --output-dir=build --output-filename=wallnext"
+# The metadata of wallnext gives the About page its version.
+nuitka_flags := "--mode=standalone --assume-yes-for-downloads --windows-console-mode=attach --enable-plugin=pyside6 --lto=no '--nofollow-import-to=pygments.lexers.[!_]*' '--nofollow-import-to=pygments.styles.[!_]*' --include-distribution-metadata=wallnext --output-dir=build --output-filename=wallnext"
+
+# Shown in the exe's Properties > Details.
+version_info := "--product-name=Wallnext --file-description=Wallnext --product-version=" + version + " --file-version=" + version + " '--company-name=Jérémy Olivier' '--copyright=Copyright (c) 2026 Jérémy Olivier'"
 
 # List the recipes
 default:
     @just --list
 
-# Compile wallnext into a standalone .exe with Nuitka
+# Compile wallnext into a standalone .exe with Nuitka, with its licenses
 build:
-    uv run nuitka {{ nuitka_flags }} src/wallnext/main.py
+    uv run nuitka {{ nuitka_flags }} {{ version_info }} src/wallnext/main.py
+    Copy-Item LICENSE build/main.dist/LICENSE.txt
+    uv run python -m wallnext.notices build/main.dist/THIRD-PARTY-NOTICES.txt
 
 # Zip the build with its Scoop manifest into build/dist (base_url: where the zip will be downloaded from)
 package base_url:

@@ -5,6 +5,11 @@ build-backend = "uv_build"
 [project]
 name = "wallnext"
 version = "1.0.0"
+description = "Automatically set desktop wallpapers from various sources, refreshed on a schedule."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Jérémy Olivier" }]
 requires-python = ">=3.14"
 dependencies = [
     "httpx2>=2.13.1",
@@ -23,6 +28,9 @@ dev = [
     "ty>=0.0.48",
     "types-pywin32>=312.0.0.20260928",
 ]
+
+[project.urls]
+Homepage = "https://github.com/jeremyolivier/wallnext"
 
 [project.scripts]
 wallnext = "wallnext.main:main"

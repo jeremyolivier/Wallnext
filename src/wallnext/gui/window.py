@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 from wallnext import config as cfg
 from wallnext import scheduler
 from wallnext.exceptions import WallnextError
+from wallnext.gui import about
 from wallnext.gui.history import HistoryDialog
 from wallnext.gui.sources import SOURCES, Source
 from wallnext.gui.widgets import (
@@ -82,13 +83,14 @@ class SettingsWindow(QWidget):
         self._refresher.done.connect(self._on_next_done)
         self._refresher.failed.connect(self._on_next_failed)
 
-        # Segoe Fluent Icons code points: Globe, Personalize, TVMonitor.
+        # Segoe Fluent Icons code points: Globe, Personalize, TVMonitor, Info.
         navigation = Navigation()
         navigation.add_page("Sources", "", self._sources())
         navigation.add_page(
             "Wallpaper", "", self._header(), self._actions(), self._schedule()
         )
         navigation.add_page("Screensaver", "", self._screensaver())
+        navigation.add_page("About", "", *about.sections(self))
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(navigation)
