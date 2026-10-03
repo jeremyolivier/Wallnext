@@ -163,7 +163,9 @@ def install(interval_seconds: int) -> Path:
 
         task.RegistrationInfo.Description = "Wallnext wallpaper refresh"
 
-        task.Principal.LogonType = _Logon.INTERACTIVE_TOKEN  # run in the user's desktop session
+        task.Principal.LogonType = (
+            _Logon.INTERACTIVE_TOKEN
+        )  # run in the user's desktop session
 
         settings = task.Settings
         settings.Hidden = True
