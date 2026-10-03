@@ -1,7 +1,7 @@
 # Windows-only project: recipes run in PowerShell.
 set windows-shell := ["pwsh", "-NoProfile", "-Command"]
 
-version := `uv version --short`
+version := `uv version --short --color never`
 
 # build/main.build is kept and LTO is off so rebuilds only recompile what changed.
 # Pygments lexers/styles are only used to colour code; keep just their _mapping index.
@@ -50,8 +50,8 @@ bump kind:
     if ((git branch --show-current) -ne 'main') { throw 'Release from main.' }
     uv version --bump {{ kind }}
     git add pyproject.toml uv.lock
-    git commit -m "🔖 Release v$(uv version --short)"
-    git tag -a "v$(uv version --short)" -m "Release v$(uv version --short)"
+    git commit -m "🔖 Release v$(uv version --short --color never)"
+    git tag -a "v$(uv version --short --color never)" -m "Release v$(uv version --short --color never)"
 
 # Remove build artifacts
 clean:

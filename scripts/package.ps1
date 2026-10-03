@@ -6,7 +6,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $build = Join-Path $root 'build'
 $dist = New-Item -ItemType Directory -Force (Join-Path $build 'dist')
-$version = uv version --short --project $root
+$version = uv version --short --color never --project $root
 $name = "wallnext-$version-win64.zip"
 $zip = Join-Path $dist $name
 
