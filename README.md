@@ -3,72 +3,87 @@
 ![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)
 ![ty](https://img.shields.io/badge/typed-ty-blue)
 
-CLI to automatically set wallpapers from various sources.
-
-## Setup
-
-```bash
-uv sync
-uv run wallnext --help
-```
-
-## Settings window
-
-Launch `wallnext` without a command (e.g. double-click the exe) to open the
-settings window: the current wallpaper, the sources (each with its own
-**Configure…** dialog) and the schedule.
-
-## Commands
-
-| Command        | Description                                     |
-|----------------|-------------------------------------------------|
-| `set-random`   | Set a random wallpaper as desktop background    |
-| `schedule ...` | Refresh the wallpaper automatically (see below) |
-
-## Automatic refresh
-
-Wallnext refreshes the wallpaper on a schedule without any resident process: a
-hidden **Windows Scheduled Task** fires at logon and then every configured
-interval, and each run sets a single wallpaper and exits. A classic Windows
-service is not an option, because it runs in session 0 and cannot change the
-interactive desktop's wallpaper.
-
-```bash
-wallnext schedule install   # register the task (logon + every interval)
-wallnext schedule start     # resume refreshes and change the wallpaper now
-wallnext schedule stop      # pause refreshes
-wallnext schedule status    # show the scheduled task state
-wallnext schedule uninstall # remove the task
-```
-
-Search settings are re-read on every run. The interval (minimum 60 seconds) is
-stored in the task trigger, so run `wallnext schedule install` again after
-changing it.
-
-Configuration (interval, query, sorting, resolution…) is stored in
-`%APPDATA%\wallnext\config.toml` and logs in
-`%APPDATA%\wallnext\wallnext.log`. Downloaded wallpapers are kept under
-`%APPDATA%\wallnext\wallpapers` (only the current one: Windows needs it on
-disk). Past wallpapers are listed, with their web address, in
-`%APPDATA%\wallnext\history.jsonl` and the window's **History**.
+A Windows app that changes your desktop wallpaper on a schedule, with pictures
+from Wallhaven, NASA, Wikimedia Commons, Bing or Windows Spotlight.
 
 ## Install
 
+With [Scoop](https://scoop.sh):
+
 ```powershell
 scoop install https://github.com/jeremyolivier/wallnext/releases/latest/download/wallnext.json
+scoop update wallnext   # later, to get new versions
 ```
+
+Without Scoop, download the zip of the
+[latest release](https://github.com/jeremyolivier/wallnext/releases/latest),
+extract it anywhere and run `wallnext.exe`.
+
+## Usage
+
+Open **Wallnext** from the Start menu:
+
+- **Sources**: tick the sources to use and **Configure…** them. Each new
+  wallpaper comes from one of the ticked sources, at random.
+- **Wallpaper**: the current wallpaper and a link to its page, **Next
+  wallpaper**, the **History** of past ones, and how often to change it.
+- **About**: version, licenses, and what Wallnext stores.
+
+The window does not need to stay open: a hidden Windows scheduled task changes
+the wallpaper at logon and then at every interval, each run setting one picture
+and exiting. (A Windows service could not do it: services cannot change the
+desktop of the logged-in user.)
+
+## Sources
+
+| Source | Pictures | Settings |
+|---|---|---|
+| [Wallhaven](https://wallhaven.cc) | Community wallpapers | Keywords, sorting, resolution… or one of your collections |
+| [NASA APOD](https://apod.nasa.gov) | Astronomy Picture of the Day, since 1995 | Minimum resolution |
+| [NASA Images](https://images.nasa.gov) | NASA's image library | Keywords, minimum resolution |
+| [Wikimedia Commons](https://commons.wikimedia.org) | Pictures of the day, since 2007 | Minimum resolution |
+| [Bing](https://www.bing.com) | Picture of the day, last 8 days | — |
+| Windows Spotlight | Lock screen pictures | — |
+
+None needs an account. Wallhaven's API key is optional: it only gives access to
+your private collections. Bing and Windows Spotlight use undocumented endpoints
+that may change.
+
+## Files
+
+Everything lives in `%APPDATA%\wallnext`:
+
+| File | Content |
+|---|---|
+| `config.toml` | Settings |
+| `history.jsonl` | Past wallpapers, with their web address |
+| `wallnext.log` | Log of the scheduled changes |
+| `wallpapers\` | The current wallpaper only: Windows needs it on disk |
+
+The Wallhaven API key is kept in the Windows Credential Manager
+(`wallnext/wallhaven`), not in the config file.
 
 ## Development
 
-Tasks run with [just](https://just.systems) (`just` lists them):
+Requires [uv](https://docs.astral.sh/uv/) and [just](https://just.systems).
 
 ```bash
-just build            # compile the exe with Nuitka
+uv sync
+uv run wallnext       # open the window from source
+just                  # list the tasks
+just build            # compile the exe with Nuitka into build/main.dist
 just run-build        # build it and launch it, without installing it
 ```
 
-To release, bump the version in `pyproject.toml`, which commits and tags it,
-then push: the tag starts the release workflow, which builds the exe and
+`wallnext set-random` sets one wallpaper and `wallnext schedule …` manages the
+scheduled task: that is what the task and the window call. The packaged exe is
+a windowed app, so these commands print nothing in a terminal; use `uv run
+wallnext …` to see their output.
+
+### Release
+
+The version lives in `pyproject.toml`. `just bump` raises it, commits and tags
+it; pushing the tag starts the release workflow, which builds the exe and
 publishes it with its Scoop manifest.
 
 ```bash
@@ -76,24 +91,10 @@ just bump minor       # or major, patch
 git push --follow-tags
 ```
 
-## Sources
+## License
 
-Enable one or more in the window; each refresh picks one of them at random.
-
-| Source | What | API key |
-|---|---|---|
-| [Wallhaven](https://wallhaven.cc) | Community wallpapers, by keywords | No |
-| [NASA APOD](https://apod.nasa.gov) | Astronomy Picture of the Day archive | No |
-| [NASA Images](https://images.nasa.gov) | NASA's image library, by keywords | No |
-| [Wikimedia Commons](https://commons.wikimedia.org) | Pictures of the day | No |
-| [Bing](https://www.bing.com) | Picture of the day, last 8 days | No |
-| Windows Spotlight | Lock screen pictures | No |
-
-Bing and Windows Spotlight use undocumented endpoints that may change.
-
-## Examples
-
-```bash
-uv run wallnext set-random
-uv run wallnext schedule status
-```
+Wallnext is under the [MIT License](LICENSE). The exe also bundles third-party
+software under its own licenses (Python, Qt and PySide6 under the LGPLv3, …),
+listed in `THIRD-PARTY-NOTICES.txt` next to it and in the **About** page.
+Pictures belong to their authors; Wallnext is not affiliated with the sources it
+shows them from.
