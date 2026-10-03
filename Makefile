@@ -9,6 +9,7 @@ NUITKA_FLAGS := \
 	--mode=standalone \
 	--assume-yes-for-downloads \
 	--windows-console-mode=attach \
+	--enable-plugin=pyside6 \
 	--lto=no \
 	--nofollow-import-to='pygments.lexers.[!_]*' \
 	--nofollow-import-to='pygments.styles.[!_]*' \

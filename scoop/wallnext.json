@@ -12,7 +12,7 @@
   "extract_dir": "main.dist",
   "bin": "wallnext.exe",
   "notes": [
-    "Configure:             wallnext config",
+    "Configure:             run wallnext (opens the settings window)",
     "Schedule refreshes:    wallnext schedule install",
     "Refresh now:           wallnext schedule start",
     "Config & logs live in %APPDATA%\\wallnext\\."

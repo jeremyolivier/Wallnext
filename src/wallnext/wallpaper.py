@@ -2,6 +2,9 @@ import ctypes.wintypes
 from pathlib import Path
 from typing import Final
 
+import win32con
+import win32gui
+
 from wallnext.exceptions import WallpaperSetError
 
 SPI_SETDESKWALLPAPER: Final[int] = 0x0014
@@ -27,3 +30,9 @@ def set_wallpaper(path: Path) -> None:
     )
     if not ok:
         raise WallpaperSetError(f"SystemParametersInfoW failed for {path}")
+
+
+def current_wallpaper() -> Path | None:
+    """The image Windows currently shows on the desktop, if any."""
+    path = win32gui.SystemParametersInfo(win32con.SPI_GETDESKWALLPAPER)
+    return Path(path) if path else None
