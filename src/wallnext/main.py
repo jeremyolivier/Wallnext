@@ -138,7 +138,7 @@ def main():
     elif mode == "/c":
         from wallnext import gui
 
-        gui.run()
+        gui.run(page="Screensaver")
     else:
         app()
 

@@ -9,6 +9,7 @@ from PySide6.QtGui import (
     QFont,
     QFontDatabase,
     QIcon,
+    QImage,
     QLinearGradient,
     QPainter,
     QPainterPath,
@@ -120,8 +121,6 @@ class Preview(QWidget):
 
         painter.setPen(QColor("#ffffff"))
         title_font = QFont(self.font())
-        # The Display cut of Segoe UI Variable is drawn for large sizes.
-        title_font.setFamilies(["Segoe UI Variable Display", self.font().family()])
         title_font.setPointSizeF(20)
         title_font.setWeight(QFont.Weight.DemiBold)
         painter.setFont(title_font)
@@ -190,6 +189,95 @@ class Card(QFrame):
         self._layout.addLayout(row)
 
 
+_LOGOS = Path(__file__).with_name("icons")
+# Wide logos (NASA's) may use more of the tile's width than square ones.
+_TILE, _LOGO, _LOGO_WIDE = 36, 20, 28
+
+
+def _main_color(image: QImage) -> QColor:
+    """The average color of a logo's visible pixels."""
+    small = image.scaled(16, 16).convertToFormat(QImage.Format.Format_ARGB32)
+    red = green = blue = weight = 0
+    for x in range(small.width()):
+        for y in range(small.height()):
+            pixel = small.pixelColor(x, y)
+            alpha = pixel.alphaF()
+            red += pixel.red() * alpha
+            green += pixel.green() * alpha
+            blue += pixel.blue() * alpha
+            weight += alpha
+    if not weight:
+        return QColor("gray")
+    return QColor(round(red / weight), round(green / weight), round(blue / weight))
+
+
+def _trimmed(image: QImage) -> QImage:
+    """The image without its transparent margins (some logos sit in a big square)."""
+    columns = [
+        x
+        for x in range(image.width())
+        if any(image.pixelColor(x, y).alpha() for y in range(image.height()))
+    ]
+    rows = [
+        y
+        for y in range(image.height())
+        if any(image.pixelColor(x, y).alpha() for x in range(image.width()))
+    ]
+    if not columns or not rows:
+        return image
+    return image.copy(
+        columns[0], rows[0], columns[-1] - columns[0] + 1, rows[-1] - rows[0] + 1
+    )
+
+
+def source_tile(logo: str) -> QLabel:
+    """A source's logo on a rounded tile, tinted with the logo's own color."""
+    label = QLabel()
+    ratio = label.devicePixelRatioF()
+    picture = _trimmed(QIcon(str(_LOGOS / logo)).pixmap(QSize(96, 96)).toImage())
+    picture = QPixmap.fromImage(
+        picture.scaled(
+            QSize(_LOGO_WIDE, _LOGO) * ratio,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+    )
+    width, height = picture.width() / ratio, picture.height() / ratio
+    tint = _main_color(picture.toImage())
+    tint.setAlphaF(0.16)
+
+    tile = QPixmap(QSize(_TILE, _TILE) * ratio)
+    tile.setDevicePixelRatio(ratio)
+    tile.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(tile)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(tint)
+    painter.drawRoundedRect(QRectF(0, 0, _TILE, _TILE), 8, 8)
+    target = QRectF((_TILE - width) / 2, (_TILE - height) / 2, width, height)
+    painter.drawPixmap(target, picture, QRectF(picture.rect()))
+    painter.end()
+    label.setPixmap(tile)
+    label.setFixedSize(_TILE, _TILE)
+    return label
+
+
+def row_text(title: str, subtitle: str | QLabel = "", logo: str = "") -> QWidget:
+    """The left side of a setting row: an optional logo, a title, a description."""
+    text = QLabel(title)
+    note = secondary(subtitle) if isinstance(subtitle, str) and subtitle else subtitle
+    column = stacked(text, note) if isinstance(note, QLabel) else text
+    if not logo:
+        return column
+    box = QWidget()
+    layout = QHBoxLayout(box)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(14)
+    layout.addWidget(source_tile(logo))
+    layout.addWidget(column, 1)
+    return box
+
+
 def stacked(*widgets: QWidget) -> QWidget:
     """Widgets stacked vertically and tightly, e.g. a name above its summary."""
     box = QWidget()
@@ -201,8 +289,8 @@ def stacked(*widgets: QWidget) -> QWidget:
     return box
 
 
-def _glyph_icon(glyph: str, widget: QWidget) -> QIcon:
-    """An icon drawn from Windows' own icon font, in the widget's text color."""
+def glyph_icon(glyph: str, widget: QWidget, color: str | None = None) -> QIcon:
+    """An icon drawn from Windows' own icon font, in `color` or the text color."""
     families = [f for f in _ICON_FONTS if f in QFontDatabase.families()]
     ratio = widget.devicePixelRatioF()
     pixmap = QPixmap(QSize(20, 20) * ratio)
@@ -213,7 +301,11 @@ def _glyph_icon(glyph: str, widget: QWidget) -> QIcon:
         font = QFont(families[0])
         font.setPixelSize(16)
         painter.setFont(font)
-        painter.setPen(widget.palette().color(QPalette.ColorRole.WindowText))
+        painter.setPen(
+            QColor(color)
+            if color
+            else widget.palette().color(QPalette.ColorRole.WindowText)
+        )
         painter.drawText(QRectF(0, 0, 20, 20), Qt.AlignmentFlag.AlignCenter, glyph)
         painter.end()
     return QIcon(pixmap)
@@ -239,21 +331,35 @@ class Navigation(QWidget):
         self._pages = QStackedWidget()
         self._pane.currentRowChanged.connect(self._pages.setCurrentIndex)
 
+        # The pane on the left, with room for a footer (e.g. the theme button).
+        self._side = QVBoxLayout()
+        self._side.setContentsMargins(0, 0, 0, 12)
+        self._side.addWidget(self._pane, 1)
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 12, 0, 0)
         layout.setSpacing(0)
-        layout.addWidget(self._pane)
+        layout.addLayout(self._side)
         layout.addWidget(self._pages, 1)
 
-    def add_page(self, title: str, glyph: str, *sections: QWidget) -> None:
+    def add_footer(self, widget: QWidget) -> None:
+        """A widget at the bottom of the pane, under the pages."""
+        self._side.addWidget(widget, alignment=Qt.AlignmentFlag.AlignLeft)
+
+    def select(self, title: str) -> None:
+        """Show the page titled `title`."""
+        for row in range(self._pane.count()):
+            if self._pane.item(row).text() == title:
+                self._pane.setCurrentRow(row)
+
+    def add_page(self, title: str, glyph: str, color: str, *sections: QWidget) -> None:
         """A page titled `title`, its sections stacked from the top."""
-        item = QListWidgetItem(_glyph_icon(glyph, self), title)
+        item = QListWidgetItem(glyph_icon(glyph, self, color), title)
         item.setSizeHint(QSize(0, 40))
         self._pane.addItem(item)
 
         heading = QLabel(title)
         font = QFont(heading.font())
-        font.setFamilies(["Segoe UI Variable Display", heading.font().family()])
         font.setPointSizeF(20)
         font.setWeight(QFont.Weight.DemiBold)
         heading.setFont(font)
@@ -269,3 +375,15 @@ class Navigation(QWidget):
         self._pages.addWidget(page)
         if self._pane.count() == 1:
             self._pane.setCurrentRow(0)
+
+
+def restyle(root: QWidget) -> None:
+    """Re-apply stylesheets under `root`, after the light/dark theme changed.
+
+    Qt resolves palette() in stylesheets once: setting them again picks up the
+    new colors.
+    """
+    for widget in [root, *root.findChildren(QWidget)]:
+        if sheet := widget.styleSheet():
+            widget.setStyleSheet("")
+            widget.setStyleSheet(sheet)

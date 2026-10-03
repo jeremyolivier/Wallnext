@@ -93,6 +93,7 @@ class Settings(BaseModel):
     interval_seconds: int = Field(default=600, ge=60)
     download_dir: Path = Field(default_factory=lambda: app_data_dir() / "wallpapers")
     lock_screen: bool = False  # also set each wallpaper as the lock screen
+    theme: Literal["system", "light", "dark"] = "system"
     sources: SourcesSettings = Field(default_factory=SourcesSettings)
 
     def source(self, key: str) -> SourceSettings:

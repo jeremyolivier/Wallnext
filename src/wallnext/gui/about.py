@@ -97,7 +97,8 @@ def sections(parent: QWidget) -> list[QWidget]:
             "Pictures belong to their authors. Wallnext shows them as your "
             "wallpaper for personal use; “View on …” opens each picture's page, "
             "with its author and license. Wallnext is not affiliated with "
-            "Wallhaven, NASA, the Wikimedia Foundation or Microsoft."
+            "Wallhaven, NASA, the Wikimedia Foundation or Microsoft, whose logos "
+            "belong to them."
         )
     )
 

@@ -46,6 +46,7 @@ class Source:
     key: str  # as in wallnext.sources.SOURCES and config.toml
     summary: Callable[[cfg.Settings], str]  # one line describing its settings
     dialog: type[SourceDialog] | None = None
+    logo: str = ""  # file in gui/icons
 
     @property
     def name(self) -> str:
@@ -335,22 +336,42 @@ class NasaImagesDialog(_ResolutionDialog):
 
 
 SOURCES = [
-    Source(key="wallhaven", summary=wallhaven_summary, dialog=WallhavenDialog),
+    Source(
+        key="wallhaven",
+        summary=wallhaven_summary,
+        dialog=WallhavenDialog,
+        logo="wallhaven.ico",
+    ),
     Source(
         key="apod",
         summary=lambda s: _with_resolution(
             "Astronomy Picture of the Day", s.sources.apod.atleast
         ),
         dialog=ApodDialog,
+        logo="nasa.svg",
     ),
-    Source(key="nasa_images", summary=nasa_images_summary, dialog=NasaImagesDialog),
+    Source(
+        key="nasa_images",
+        summary=nasa_images_summary,
+        dialog=NasaImagesDialog,
+        logo="nasa.svg",
+    ),
     Source(
         key="wikimedia",
         summary=lambda s: _with_resolution(
             "Picture of the day", s.sources.wikimedia.atleast
         ),
         dialog=WikimediaDialog,
+        logo="wikimedia.svg",
     ),
-    Source(key="bing", summary=lambda _: "Picture of the day · last 8 days · 4K"),
-    Source(key="spotlight", summary=lambda _: "Windows lock screen pictures · 4K"),
+    Source(
+        key="bing",
+        summary=lambda _: "Picture of the day · last 8 days · 4K",
+        logo="bing.png",
+    ),
+    Source(
+        key="spotlight",
+        summary=lambda _: "Windows lock screen pictures · 4K",
+        logo="windows.svg",
+    ),
 ]
