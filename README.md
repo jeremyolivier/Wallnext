@@ -8,16 +8,19 @@ from Wallhaven, NASA, Wikimedia Commons, Bing or Windows Spotlight.
 
 ## Install
 
-With [Scoop](https://scoop.sh):
+Download `Wallnext-<version>.msi` from the
+[latest release](https://github.com/jeremyolivier/wallnext/releases/latest) and
+run it: it installs for your user only, without admin rights, and new versions
+install over the old one.
+
+Or with [Scoop](https://scoop.sh):
 
 ```powershell
 scoop install https://github.com/jeremyolivier/wallnext/releases/latest/download/wallnext.json
 scoop update wallnext   # later, to get new versions
 ```
 
-Without Scoop, download the zip of the
-[latest release](https://github.com/jeremyolivier/wallnext/releases/latest),
-extract it anywhere and run `wallnext.exe`.
+Or extract the release zip anywhere and run `wallnext.exe`.
 
 ## Usage
 
@@ -73,6 +76,7 @@ uv run wallnext       # open the window from source
 just                  # list the tasks
 just build            # compile the exe with Nuitka into build/main.dist
 just run-build        # build it and launch it, without installing it
+just msi              # build the installer (needs WiX: scoop install wixtoolset)
 ```
 
 `wallnext set-random` sets one wallpaper and `wallnext schedule …` manages the
@@ -84,7 +88,7 @@ wallnext …` to see their output.
 
 The version lives in `pyproject.toml`. `just bump` raises it, commits and tags
 it; pushing the tag starts the release workflow, which builds the exe and
-publishes it with its Scoop manifest.
+publishes it with its MSI and Scoop manifest.
 
 ```bash
 just bump minor       # or major, patch

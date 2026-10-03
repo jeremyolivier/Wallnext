@@ -24,6 +24,10 @@ build:
 package base_url:
     ./scripts/package.ps1 -BaseUrl '{{ base_url }}'
 
+# Build the Windows installer into build/dist (needs WiX: scoop install wixtoolset)
+msi:
+    wix build installer/wallnext.wxs -arch x64 -d Version={{ version }} -b 'dist={{ justfile_directory() }}/build/main.dist' -o build/dist/Wallnext-{{ version }}.msi -pdbtype none -acceptEula wix7
+
 # Build the exe and launch it, without installing it
 run-build: build
     ./build/main.dist/wallnext.exe

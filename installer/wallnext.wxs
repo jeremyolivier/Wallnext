@@ -1,0 +1,52 @@
+<!--
+  Windows Installer package for Wallnext (`just msi`).
+  Installs for the current user, without admin rights, into
+  %LOCALAPPDATA%\Programs\Wallnext.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <!-- UpgradeCode never changes: it lets a newer MSI replace an older one. -->
+  <Package
+    Name="Wallnext"
+    Manufacturer="Jérémy Olivier"
+    Version="$(Version)"
+    UpgradeCode="056C9926-70BC-4E71-84D0-34A0D591C290"
+    Scope="perUserOrMachine"
+    Codepage="1252">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Wallnext is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/jeremyolivier/wallnext" />
+
+    <!-- Per-user by default: Windows Installer redirects it to %LOCALAPPDATA%\Programs. -->
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="Wallnext">
+        <Files Include="!(bindpath.dist)\**" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut">
+        <Shortcut
+          Id="WallnextShortcut"
+          Name="Wallnext"
+          Target="[INSTALLFOLDER]wallnext.exe"
+          WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKMU" Key="Software\Wallnext" Name="StartMenuShortcut"
+          Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <!-- On uninstall only (not on upgrade), remove the scheduled task. -->
+    <CustomAction
+      Id="RemoveScheduledTask"
+      Directory="INSTALLFOLDER"
+      ExeCommand="&quot;[SystemFolder]schtasks.exe&quot; /Delete /TN wallnext /F"
+      Execute="immediate"
+      Return="ignore" />
+    <InstallExecuteSequence>
+      <Custom Action="RemoveScheduledTask" Before="RemoveFiles"
+        Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+  </Package>
+</Wix>
