@@ -4,7 +4,8 @@ from pathlib import Path, PurePosixPath
 from typing import ClassVar
 from urllib.parse import parse_qs, urlsplit
 
-from wallnext.exceptions import ApodError
+from wallnext.exceptions import SourceError
+from wallnext.sources import http
 from wallnext.sources.apod.client import ApodRequester
 from wallnext.sources.apod.models import Entry
 from wallnext.sources.base import Wallpaper
@@ -35,12 +36,6 @@ def _original(url: str) -> str:
     return parts._replace(path=path, query="").geturl()
 
 
-def _parse_resolution(value: str) -> tuple[int, int]:
-    """Parse "2560x1440" into (2560, 1440); empty or malformed means no minimum."""
-    match = re.fullmatch(r"(\d+)x(\d+)", value.strip())
-    return (int(match[1]), int(match[2])) if match else (0, 0)
-
-
 class ApodSource:
     name: ClassVar[str] = "NASA APOD"
 
@@ -48,7 +43,7 @@ class ApodSource:
         self, requester: ApodRequester | None = None, atleast: str = ""
     ) -> None:
         self._requester = requester or ApodRequester()
-        self._min_width, self._min_height = _parse_resolution(atleast)
+        self._atleast = atleast
 
     def _fits(self, entry: Entry) -> bool:
         """A landscape image of at least the minimum resolution.
@@ -57,10 +52,7 @@ class ApodSource:
         """
         if entry.media_type != "image" or (size := _size(entry)) is None:
             return False
-        width, height = size
-        return (
-            width > height and width >= self._min_width and height >= self._min_height
-        )
+        return http.fits(*size, self._atleast)
 
     def random_wallpaper(self) -> Wallpaper:
         # The API has no random order: pick a random page of the archive.
@@ -76,7 +68,7 @@ class ApodSource:
                 url = _original(entry.hdurl)
                 suffix = PurePosixPath(urlsplit(url).path).suffix
                 return Wallpaper(url=url, filename=f"apod-{entry.date}{suffix}")
-        raise ApodError(
+        raise SourceError(
             "No picture large enough found, try again or lower the minimum resolution."
         )
 

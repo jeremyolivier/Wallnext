@@ -2,36 +2,24 @@ class WallnextError(Exception):
     """Base exception for wallnext."""
 
 
-class WallhavenAPIError(WallnextError):
-    """HTTP error returned by Wallhaven API."""
+class SourceError(WallnextError):
+    """A wallpaper source could not provide a wallpaper."""
 
-    def __init__(self, status_code: int, message: str) -> None:
+
+class SourceAPIError(SourceError):
+    """HTTP error returned by a source's API."""
+
+    def __init__(self, source: str, status_code: int, message: str) -> None:
         self.status_code = status_code
-        super().__init__(f"Wallhaven API error {status_code}: {message}")
+        super().__init__(f"{source} API error {status_code}: {message}")
 
 
-class WallhavenNetworkError(WallnextError):
-    """Network or timeout error reaching Wallhaven."""
+class SourceNetworkError(SourceError):
+    """Network or timeout error reaching a source's API."""
 
 
 class WallpaperSetError(WallnextError):
     """Failed to apply wallpaper via Win32 API."""
-
-
-class ApodError(WallnextError):
-    """No usable picture from NASA's Astronomy Picture of the Day."""
-
-
-class ApodAPIError(ApodError):
-    """HTTP error returned by the APOD API."""
-
-    def __init__(self, status_code: int, message: str) -> None:
-        self.status_code = status_code
-        super().__init__(f"APOD API error {status_code}: {message}")
-
-
-class ApodNetworkError(ApodError):
-    """Network or timeout error reaching the APOD API."""
 
 
 class DownloadError(WallnextError):

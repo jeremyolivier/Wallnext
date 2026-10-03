@@ -1,27 +1,15 @@
 import httpx
 
-from wallnext.exceptions import WallhavenAPIError, WallhavenNetworkError
+from wallnext.sources import http
 from wallnext.sources.wallhaven.models import SearchResult
 
 
 class WallhavenRequester:
     def __init__(self):
-        self.client = httpx.Client(
-            base_url="https://wallhaven.cc/api/v1",
-            timeout=10,
-        )
+        self.client = http.client("https://wallhaven.cc/api/v1")
 
     def _get(self, *args, **kwargs) -> httpx.Response:
-        try:
-            resp = self.client.get(*args, **kwargs)
-            resp.raise_for_status()
-            return resp
-        except httpx.HTTPStatusError as e:
-            raise WallhavenAPIError(e.response.status_code, e.response.text) from e
-        except httpx.TimeoutException as e:
-            raise WallhavenNetworkError("Request timed out.") from e
-        except httpx.RequestError as e:
-            raise WallhavenNetworkError(f"Network error: {e}") from e
+        return http.get(self.client, "Wallhaven", *args, **kwargs)
 
     def search(
         self,

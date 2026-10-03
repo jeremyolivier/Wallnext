@@ -3,13 +3,20 @@ from pathlib import Path
 import httpx
 
 from wallnext.exceptions import DownloadError
+from wallnext.sources.http import USER_AGENT
 
 
 def download(url: str, dest: Path) -> Path:
     """Stream `url` to `dest`, creating its directory as needed."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
-        with httpx.stream("GET", url, timeout=30, follow_redirects=True) as resp:
+        with httpx.stream(
+            "GET",
+            url,
+            timeout=30,
+            follow_redirects=True,
+            headers={"User-Agent": USER_AGENT},
+        ) as resp:
             resp.raise_for_status()
             with open(dest, "wb") as f:
                 f.writelines(resp.iter_bytes())
