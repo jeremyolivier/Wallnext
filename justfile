@@ -1,0 +1,43 @@
+# Windows-only project: recipes run in PowerShell.
+set windows-shell := ["pwsh", "-NoProfile", "-Command"]
+
+# build/main.build is kept and LTO is off so rebuilds only recompile what changed.
+# Pygments lexers/styles are only used to colour code; keep just their _mapping index.
+nuitka_flags := "--mode=standalone --assume-yes-for-downloads --windows-console-mode=attach --enable-plugin=pyside6 --lto=no '--nofollow-import-to=pygments.lexers.[!_]*' '--nofollow-import-to=pygments.styles.[!_]*' --output-dir=build --output-filename=wallnext"
+
+# List the recipes
+default:
+    @just --list
+
+# Compile wallnext into a standalone .exe with Nuitka
+build:
+    uv run nuitka {{ nuitka_flags }} src/wallnext/main.py
+
+# Zip the build with its Scoop manifest into build/dist (base_url: where the zip will be downloaded from)
+package base_url="":
+    ./scripts/package.ps1 -BaseUrl '{{ base_url }}'
+
+# Build and install it with Scoop
+scoop-install: build package
+    ./scripts/scoop-install.ps1
+
+# Remove the scheduled task and the Scoop install
+scoop-uninstall:
+    -wallnext schedule uninstall
+    scoop uninstall wallnext
+
+# The tag is annotated: `git push --follow-tags` leaves lightweight tags behind.
+
+# Bump the version (major, minor or patch), commit and tag it; then git push --follow-tags
+[arg("kind", pattern="major|minor|patch")]
+bump kind:
+    if (git status --porcelain) { throw 'Commit or stash your changes first.' }
+    if ((git branch --show-current) -ne 'main') { throw 'Release from main.' }
+    uv version --bump {{ kind }}
+    git add pyproject.toml uv.lock
+    git commit -m "🔖 Release v$(uv version --short)"
+    git tag -a "v$(uv version --short)" -m "Release v$(uv version --short)"
+
+# Remove build artifacts
+clean:
+    if (Test-Path build) { Remove-Item -Recurse -Force build }

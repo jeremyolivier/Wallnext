@@ -52,6 +52,30 @@ Configuration (interval, query, sorting, resolution…) is stored in
 disk). Past wallpapers are listed, with their web address, in
 `%APPDATA%\wallnext\history.jsonl` and the window's **History**.
 
+## Install
+
+```powershell
+scoop install https://github.com/jeremyolivier/wallnext/releases/latest/download/wallnext.json
+```
+
+## Development
+
+Tasks run with [just](https://just.systems) (`just` lists them):
+
+```bash
+just build            # compile the exe with Nuitka
+just scoop-install    # build it and install it with Scoop
+```
+
+To release, bump the version in `pyproject.toml`, which commits and tags it,
+then push: the tag starts the release workflow, which builds the exe and
+publishes it with its Scoop manifest.
+
+```bash
+just bump minor       # or major, patch
+git push --follow-tags
+```
+
 ## Sources
 
 Enable one or more in the window; each refresh picks one of them at random.
