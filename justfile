@@ -14,14 +14,14 @@ build:
     uv run nuitka {{ nuitka_flags }} src/wallnext/main.py
 
 # Zip the build with its Scoop manifest into build/dist (base_url: where the zip will be downloaded from)
-package base_url="":
+package base_url:
     ./scripts/package.ps1 -BaseUrl '{{ base_url }}'
 
-# Build and install it with Scoop
-scoop-install: build package
-    ./scripts/scoop-install.ps1
+# Build the exe and launch it, without installing it
+run-build: build
+    ./build/main.dist/wallnext.exe
 
-# Remove the scheduled task and the Scoop install
+# Remove the scheduled task and the published Scoop install
 scoop-uninstall:
     -wallnext schedule uninstall
     scoop uninstall wallnext

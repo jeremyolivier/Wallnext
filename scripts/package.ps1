@@ -1,6 +1,6 @@
 # Zip build/main.dist and write its Scoop manifest, both into build/dist.
-# -BaseUrl is where the zip will be downloaded from; empty means this machine.
-param([string]$BaseUrl = '')
+# -BaseUrl is where the zip will be downloaded from (the GitHub release).
+param([Parameter(Mandatory)][string]$BaseUrl)
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path $PSScriptRoot -Parent
@@ -14,7 +14,7 @@ Compress-Archive -Path (Join-Path $build 'main.dist') -DestinationPath $zip -For
 
 $manifest = Get-Content (Join-Path $root 'scoop\wallnext.json') -Raw | ConvertFrom-Json
 $manifest.version = $version
-$manifest.architecture.'64bit'.url = if ($BaseUrl) { "$BaseUrl/$name" } else { $zip }
+$manifest.architecture.'64bit'.url = "$BaseUrl/$name"
 $manifest.architecture.'64bit'.hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
 # Scoop names the app after the manifest file.
 $manifest | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $dist 'wallnext.json')

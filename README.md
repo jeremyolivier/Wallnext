@@ -64,7 +64,7 @@ Tasks run with [just](https://just.systems) (`just` lists them):
 
 ```bash
 just build            # compile the exe with Nuitka
-just scoop-install    # build it and install it with Scoop
+just run-build        # build it and launch it, without installing it
 ```
 
 To release, bump the version in `pyproject.toml`, which commits and tags it,
