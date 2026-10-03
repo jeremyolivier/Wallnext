@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "wallnext"
-version = "1.0.0"
+version = "1.1.0"
 description = "Automatically set desktop wallpapers from various sources, refreshed on a schedule."
 readme = "README.md"
 license = "MIT"
