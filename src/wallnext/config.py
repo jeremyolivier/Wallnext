@@ -1,7 +1,7 @@
 import os
 import tomllib
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import tomli_w
 from pydantic import BaseModel, Field, model_validator
@@ -39,10 +39,17 @@ class WallhavenSettings(SourceSettings):
     toprange: str = "1M"
     atleast: str = Field(default_factory=largest_resolution)
     ratios: str = ""
+    # Collection mode. The API key is in the Credential Manager, not here.
+    mode: Literal["search", "collection"] = "search"
+    username: str = ""
+    collection_id: int | None = None
+    collection_label: str = ""
 
     def search_params(self) -> dict[str, Any]:
         """Map settings onto WallhavenRequester.search() keyword arguments."""
-        return self.model_dump(exclude={"enabled"})
+        return self.model_dump(
+            exclude={"enabled", "mode", "username", "collection_id", "collection_label"}
+        )
 
 
 class ApodSettings(SourceSettings):

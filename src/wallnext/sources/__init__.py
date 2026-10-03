@@ -1,6 +1,7 @@
 import random
 from pathlib import Path
 
+from wallnext import credentials
 from wallnext.config import Settings
 from wallnext.exceptions import WallnextError
 from wallnext.sources.apod.source import ApodSource
@@ -8,6 +9,7 @@ from wallnext.sources.base import Wallpaper, WallpaperSource
 from wallnext.sources.bing.source import BingSource
 from wallnext.sources.nasa_images.source import NasaImagesSource
 from wallnext.sources.spotlight.source import SpotlightSource
+from wallnext.sources.wallhaven.client import WallhavenRequester
 from wallnext.sources.wallhaven.source import WallhavenSource
 from wallnext.sources.wikimedia.source import WikimediaSource
 
@@ -27,7 +29,14 @@ SOURCES: dict[str, type[WallpaperSource]] = {
 def _build(key: str, settings: Settings) -> WallpaperSource:
     match key:
         case "wallhaven":
-            return WallhavenSource(**settings.sources.wallhaven.search_params())
+            wallhaven = settings.sources.wallhaven
+            if wallhaven.mode == "collection" and wallhaven.collection_id is not None:
+                return WallhavenSource(
+                    WallhavenRequester(credentials.get("wallhaven")),
+                    collection=(wallhaven.username, wallhaven.collection_id),
+                    purity=wallhaven.purity,
+                )
+            return WallhavenSource(**wallhaven.search_params())
         case "apod":
             return ApodSource(atleast=settings.sources.apod.atleast)
         case "nasa_images":

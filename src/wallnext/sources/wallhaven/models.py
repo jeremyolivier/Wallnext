@@ -33,10 +33,21 @@ class Meta(BaseModel):
     last_page: int
     per_page: int
     total: int
-    query: str
+    query: str | None = None  # absent from collection listings
     seed: str | None = None
 
 
 class SearchResult(BaseModel):
     data: list[Wallpaper]
     meta: Meta
+
+
+class Collection(BaseModel):
+    id: int
+    label: str
+    count: int
+    public: int  # 1 or 0
+
+
+class Collections(BaseModel):
+    data: list[Collection]
