@@ -52,10 +52,18 @@ Configuration (interval, query, sorting, resolution…) is stored in
 
 ## Sources
 
-| Source | Status |
-|---|---|
-| [Wallhaven](https://wallhaven.cc) | ✅ Available |
-| More coming soon | 🔜 |
+Enable one or more in the window; each refresh picks one of them at random.
+
+| Source | What | API key |
+|---|---|---|
+| [Wallhaven](https://wallhaven.cc) | Community wallpapers, by keywords | No |
+| [NASA APOD](https://apod.nasa.gov) | Astronomy Picture of the Day archive | No |
+| [NASA Images](https://images.nasa.gov) | NASA's image library, by keywords | No |
+| [Wikimedia Commons](https://commons.wikimedia.org) | Pictures of the day | No |
+| [Bing](https://www.bing.com) | Picture of the day, last 8 days | No |
+| Windows Spotlight | Lock screen pictures | No |
+
+Bing and Windows Spotlight use undocumented endpoints that may change.
 
 ## Examples
 

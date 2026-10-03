@@ -50,11 +50,34 @@ class ApodSettings(SourceSettings):
     atleast: str = Field(default_factory=largest_resolution)
 
 
+class NasaImagesSettings(SourceSettings):
+    enabled: bool = False
+    query: str = "galaxy"
+    atleast: str = Field(default_factory=largest_resolution)
+
+
+class WikimediaSettings(SourceSettings):
+    enabled: bool = False
+    atleast: str = Field(default_factory=largest_resolution)
+
+
+class BingSettings(SourceSettings):
+    enabled: bool = False
+
+
+class SpotlightSettings(SourceSettings):
+    enabled: bool = False
+
+
 class SourcesSettings(BaseModel):
     """One table per source, e.g. [sources.wallhaven] in config.toml."""
 
     wallhaven: WallhavenSettings = Field(default_factory=WallhavenSettings)
     apod: ApodSettings = Field(default_factory=ApodSettings)
+    nasa_images: NasaImagesSettings = Field(default_factory=NasaImagesSettings)
+    wikimedia: WikimediaSettings = Field(default_factory=WikimediaSettings)
+    bing: BingSettings = Field(default_factory=BingSettings)
+    spotlight: SpotlightSettings = Field(default_factory=SpotlightSettings)
 
 
 class Settings(BaseModel):

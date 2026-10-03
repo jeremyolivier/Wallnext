@@ -5,7 +5,11 @@ from wallnext.config import Settings
 from wallnext.exceptions import WallnextError
 from wallnext.sources.apod.source import ApodSource
 from wallnext.sources.base import Wallpaper, WallpaperSource
+from wallnext.sources.bing.source import BingSource
+from wallnext.sources.nasa_images.source import NasaImagesSource
+from wallnext.sources.spotlight.source import SpotlightSource
 from wallnext.sources.wallhaven.source import WallhavenSource
+from wallnext.sources.wikimedia.source import WikimediaSource
 
 __all__ = ["SOURCES", "Wallpaper", "WallpaperSource", "create", "identify"]
 
@@ -13,6 +17,10 @@ __all__ = ["SOURCES", "Wallpaper", "WallpaperSource", "create", "identify"]
 SOURCES: dict[str, type[WallpaperSource]] = {
     "wallhaven": WallhavenSource,
     "apod": ApodSource,
+    "nasa_images": NasaImagesSource,
+    "wikimedia": WikimediaSource,
+    "bing": BingSource,
+    "spotlight": SpotlightSource,
 }
 
 
@@ -22,6 +30,15 @@ def _build(key: str, settings: Settings) -> WallpaperSource:
             return WallhavenSource(**settings.sources.wallhaven.search_params())
         case "apod":
             return ApodSource(atleast=settings.sources.apod.atleast)
+        case "nasa_images":
+            nasa = settings.sources.nasa_images
+            return NasaImagesSource(query=nasa.query, atleast=nasa.atleast)
+        case "wikimedia":
+            return WikimediaSource(atleast=settings.sources.wikimedia.atleast)
+        case "bing":
+            return BingSource()
+        case "spotlight":
+            return SpotlightSource()
     raise ValueError(f"Unknown source: {key}")
 
 

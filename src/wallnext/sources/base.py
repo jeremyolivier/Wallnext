@@ -18,5 +18,8 @@ class WallpaperSource(Protocol):
 
     @staticmethod
     def page_url(wallpaper: Path) -> str | None:
-        """The web page of a wallpaper this source downloaded, else None."""
+        """Where a wallpaper this source downloaded lives on the web, else None.
+
+        Its page when the source has one per picture, otherwise the image itself.
+        """
         ...
