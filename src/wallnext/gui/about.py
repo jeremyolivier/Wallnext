@@ -1,8 +1,10 @@
 """About page: version, license, third-party software, pictures and privacy."""
 
 import importlib.metadata
+import sys
 from collections.abc import Callable
 
+import win32api
 from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import (
     QDialog,
@@ -23,10 +25,12 @@ REPOSITORY = "https://github.com/jeremyolivier/wallnext"
 
 
 def version() -> str:
-    try:
-        return importlib.metadata.version("wallnext")
-    except importlib.metadata.PackageNotFoundError:
-        return "dev"
+    if "__compiled__" in globals():
+        # Packaged by Nuitka: read the version `just build` put in the exe.
+        info = win32api.GetFileVersionInfo(sys.executable, "\\")
+        major_minor, patch = info["FileVersionMS"], info["FileVersionLS"]
+        return f"{major_minor >> 16}.{major_minor & 0xFFFF}.{patch >> 16}"
+    return importlib.metadata.version("wallnext")
 
 
 class _TextDialog(QDialog):

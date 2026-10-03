@@ -5,10 +5,9 @@ version := `uv version --short`
 
 # build/main.build is kept and LTO is off so rebuilds only recompile what changed.
 # Pygments lexers/styles are only used to colour code; keep just their _mapping index.
-# The metadata of wallnext gives the About page its version.
-nuitka_flags := "--mode=standalone --assume-yes-for-downloads --windows-console-mode=attach --enable-plugin=pyside6 --lto=no '--nofollow-import-to=pygments.lexers.[!_]*' '--nofollow-import-to=pygments.styles.[!_]*' --include-distribution-metadata=wallnext --output-dir=build --output-filename=wallnext"
+nuitka_flags := "--mode=standalone --assume-yes-for-downloads --windows-console-mode=attach --enable-plugin=pyside6 --lto=no '--nofollow-import-to=pygments.lexers.[!_]*' '--nofollow-import-to=pygments.styles.[!_]*' --output-dir=build --output-filename=wallnext"
 
-# Shown in the exe's Properties > Details.
+# Shown in the exe's Properties > Details, and read by the About page.
 version_info := "--product-name=Wallnext --file-description=Wallnext --product-version=" + version + " --file-version=" + version + " '--company-name=Jérémy Olivier' '--copyright=Copyright (c) 2026 Jérémy Olivier'"
 
 # List the recipes
