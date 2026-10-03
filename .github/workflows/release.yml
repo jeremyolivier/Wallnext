@@ -22,11 +22,22 @@ jobs:
         with:
           python-version: "3.14"
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - uses: extractions/setup-just@v2
+
+      # Nuitka's C compiler cache: unchanged modules are not recompiled. Older
+      # entries still help when dependencies change, hence the restore key.
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/nuitka-cache
+          key: nuitka-${{ runner.os }}-${{ hashFiles('uv.lock', 'justfile') }}
+          restore-keys: nuitka-${{ runner.os }}-
 
       - run: just build
         env:
           UV_PYTHON: ${{ steps.python.outputs.python-path }}
+          NUITKA_CACHE_DIR: ${{ runner.temp }}/nuitka-cache
 
       - run: just package "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}"
 
