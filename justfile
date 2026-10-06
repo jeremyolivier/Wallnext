@@ -6,7 +6,7 @@ version := `uv version --short --color never`
 # build/main.build is kept and LTO is off so rebuilds only recompile what changed.
 # Pygments lexers/styles are only used to colour code; keep just their _mapping index.
 # The screensaver needs Qt Quick (qml) and its slideshow.qml (package data).
-nuitka_flags := "--mode=standalone --assume-yes-for-downloads --windows-console-mode=attach --enable-plugin=pyside6 --lto=no '--nofollow-import-to=pygments.lexers.[!_]*' '--nofollow-import-to=pygments.styles.[!_]*' --include-qt-plugins=qml --include-package-data=wallnext --windows-icon-from-ico=assets/wallnext.ico --output-dir=build --output-filename=wallnext"
+nuitka_flags := "--mode=standalone --assume-yes-for-downloads --windows-console-mode=attach --enable-plugin=pyside6 --lto=no '--nofollow-import-to=pygments.lexers.[!_]*' '--nofollow-import-to=pygments.styles.[!_]*' --include-qt-plugins=qml --include-package-data=wallnext --include-distribution-metadata=wallnext --windows-icon-from-ico=assets/wallnext.ico --output-dir=build --output-filename=wallnext"
 
 # Shown in the exe's Properties > Details, and read by the About page.
 version_info := "--product-name=Wallnext --file-description=Wallnext --product-version=" + version + " --file-version=" + version + " '--company-name=Jérémy Olivier' '--copyright=Copyright (c) 2026 Jérémy Olivier'"

@@ -5,6 +5,7 @@ import sys
 from collections.abc import Callable
 
 import win32api
+import pywintypes
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QFont, QFontDatabase, QIcon
 from PySide6.QtWidgets import (
@@ -29,7 +30,12 @@ REPOSITORY = "https://github.com/jeremyolivier/wallnext"
 def version() -> str:
     if "__compiled__" in globals():
         # Packaged by Nuitka: read the version `just build` put in the exe.
-        info = win32api.GetFileVersionInfo(sys.executable, "\\")
+        try:
+            info = win32api.GetFileVersionInfo(sys.executable, "\\")
+        except pywintypes.error:
+            # Some standalone builds do not expose the PE version resource
+            # through sys.executable.
+            return importlib.metadata.version("wallnext")
         major_minor, patch = info["FileVersionMS"], info["FileVersionLS"]
         return f"{major_minor >> 16}.{major_minor & 0xFFFF}.{patch >> 16}"
     return importlib.metadata.version("wallnext")
